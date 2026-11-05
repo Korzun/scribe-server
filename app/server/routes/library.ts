@@ -5,9 +5,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import { readSetupCode } from '../config';
+import { isSealed, SEAL_HEADER_LENGTH, TAG_LENGTH } from '../crypto/seal';
 import { logger } from '../logger';
 import { createIpRateLimit } from '../middleware/rate-limit';
-import { issueDeviceToken } from '../services/device';
 import { createLibrary, getLibrary, LibraryExistsError } from '../services/library';
 import type { AppConfig } from '../types';
 
@@ -28,16 +28,22 @@ const base64Bytes = (min: number, max: number) =>
     .transform((s) => Buffer.from(s, 'base64'))
     .refine((b) => b.length >= min && b.length <= max, 'wrong length');
 
+/**
+ * A key wrap is a sealed 32-byte Library Key: header + 32 + tag, exactly. A
+ * wrong-length or unsealed blob here would be stored and only discovered at
+ * the first unlock, when it is too late to re-run setup.
+ */
+const WRAP_LENGTH = SEAL_HEADER_LENGTH + 32 + TAG_LENGTH;
+const sealedWrap = () => base64Bytes(WRAP_LENGTH, WRAP_LENGTH).refine(isSealed, 'not sealed');
+
 const createLibraryBody = z.object({
   setupCode: z.string().max(256),
   libraryId: z.uuid(),
   passwordSalt: base64Bytes(16, 64),
   recoverySalt: base64Bytes(16, 64),
   authKey: base64Bytes(32, 32),
-  passwordWrap: base64Bytes(1, 4096),
-  recoveryCodes: z
-    .array(z.object({ authKey: base64Bytes(32, 32), wrap: base64Bytes(1, 4096) }))
-    .length(10),
+  passwordWrap: sealedWrap(),
+  recoveryCodes: z.array(z.object({ authKey: base64Bytes(32, 32), wrap: sealedWrap() })).length(10),
   device: z.object({ name: z.string().trim().min(1).max(100) }),
 });
 
@@ -118,13 +124,23 @@ export function createLibraryRouter({ prisma, config, now }: LibraryRouterDeps):
       }
 
       try {
-        await createLibrary(prisma, {
-          libraryId: body.libraryId,
-          passwordSalt: body.passwordSalt,
-          recoverySalt: body.recoverySalt,
-          authKey: body.authKey,
-          passwordWrap: body.passwordWrap,
-          recoveryCodes: body.recoveryCodes,
+        const created = await createLibrary(
+          prisma,
+          {
+            libraryId: body.libraryId,
+            passwordSalt: body.passwordSalt,
+            recoverySalt: body.recoverySalt,
+            authKey: body.authKey,
+            passwordWrap: body.passwordWrap,
+            recoveryCodes: body.recoveryCodes,
+            device: body.device,
+          },
+          now()
+        );
+        res.status(201).json({
+          libraryId: created.libraryId,
+          deviceId: created.deviceId,
+          deviceToken: created.token,
         });
       } catch (err) {
         if (err instanceof LibraryExistsError) {
@@ -133,13 +149,6 @@ export function createLibraryRouter({ prisma, config, now }: LibraryRouterDeps):
         }
         throw err;
       }
-
-      const { deviceId, token } = await issueDeviceToken(prisma, {
-        libraryId: body.libraryId,
-        name: body.device.name,
-        now: now(),
-      });
-      res.status(201).json({ libraryId: body.libraryId, deviceId, deviceToken: token });
     } catch (err) {
       next(err);
     }

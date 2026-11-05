@@ -14,7 +14,8 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 const MAGIC = Buffer.from('SCRB', 'ascii');
 const VERSION = 0x01;
 const NONCE_LENGTH = 12;
-const TAG_LENGTH = 16;
+/** AES-GCM authentication tag length: the last 16 bytes of every sealed blob. */
+export const TAG_LENGTH = 16;
 
 /** Bytes before the ciphertext: magic (4) + version (1) + nonce (12). */
 export const SEAL_HEADER_LENGTH = MAGIC.length + 1 + NONCE_LENGTH;
