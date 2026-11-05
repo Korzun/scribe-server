@@ -14,6 +14,7 @@ const log = logger('DevicesRoute');
 
 export type DevicesRouterDeps = {
   prisma: PrismaClient;
+  jwtSecret: Buffer;
   config: AppConfig;
   now: () => number;
 };
@@ -38,7 +39,7 @@ const renameBody = z.object({ name: nameSchema });
  * Nothing here logs a request body, token, key, salt or verifier: outcomes
  * are logged with device ids only.
  */
-export function createDevicesRouter({ prisma, config, now }: DevicesRouterDeps): Router {
+export function createDevicesRouter({ prisma, jwtSecret, config, now }: DevicesRouterDeps): Router {
   const router = Router();
   const enrolLimit = createIpRateLimit({
     max: 10,
@@ -46,7 +47,7 @@ export function createDevicesRouter({ prisma, config, now }: DevicesRouterDeps):
     trustProxyHops: config.trustProxyHops,
     now,
   });
-  const auth = ownerAuth({ prisma, now });
+  const auth = ownerAuth({ prisma, jwtSecret, now });
 
   router.post('/devices', enrolLimit, async (req, res, next) => {
     try {
@@ -85,7 +86,7 @@ export function createDevicesRouter({ prisma, config, now }: DevicesRouterDeps):
   router.get('/devices', auth, async (req, res, next) => {
     try {
       const rows = await prisma.device.findMany({ orderBy: { createdAt: 'asc' } });
-      // A session caller (Task 6) has no device id, so no row is "current".
+      // A session caller has no device id, so no row is "current".
       const currentId = req.owner?.via === 'device' ? req.owner.deviceId : null;
       res.json({
         devices: rows.map((d) => ({

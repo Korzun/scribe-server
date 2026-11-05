@@ -25,6 +25,7 @@ export type ClientBody = {
   libraryId?: string;
   deviceId?: string;
   deviceToken?: string;
+  accessToken?: string;
   passwordWrap?: string;
   devices?: Array<{
     id: string;
@@ -58,7 +59,85 @@ export type CreateLibraryRequest = {
  * route test hand-rolls its own requests.
  */
 export class VaultClient {
+  /** The access token from the last `login`/`refresh`; pass it wherever a device token goes. */
+  accessToken: string | null = null;
+  /** The `refresh_token=<value>` pair from the last `login`/`refresh`, as a browser's cookie jar would hold it. */
+  refreshCookie: string | null = null;
+
   constructor(private readonly app: express.Express) {}
+
+  /**
+   * Signs in as a browser would: fetches the salts, derives the auth key from
+   * password + Secret Key, posts it, and keeps the access token and the
+   * refresh cookie on this instance for `asSession`, `refresh` and `logout`.
+   */
+  async login(input: { password: string; secretKey: string }): Promise<ClientResponse> {
+    const salts = await this.salts();
+    const secretKey = parseSecretKey(input.secretKey);
+    if (salts.status !== 200 || secretKey === null || salts.body.passwordSalt === undefined) {
+      throw new Error('login: could not fetch salts or parse the Secret Key');
+    }
+    const { authKey } = deriveAccountKeys({
+      secret: Buffer.from(input.password, 'utf8'),
+      secretKey,
+      salt: Buffer.from(salts.body.passwordSalt, 'base64'),
+    });
+    return this.postSession({ authKey: authKey.toString('base64') });
+  }
+
+  /** POST /session with an arbitrary body (shape tests, wrong keys); keeps any session it opens. */
+  async postSession(body: unknown): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .post('/api/v1/session')
+      .send(body as object);
+    this.keep(res);
+    return { status: res.status, body: res.body };
+  }
+
+  /** The bearer credential of the current session, in the form the per-call `token` arguments take. */
+  asSession(): string {
+    if (this.accessToken === null) throw new Error('asSession: not signed in');
+    return this.accessToken;
+  }
+
+  /** Rotates the session presented by `cookie` (default: the stored one) and keeps the new pair. */
+  async refresh(cookie: string | null = this.refreshCookie): Promise<ClientResponse> {
+    const req = request(this.app).post('/api/v1/session/refresh');
+    if (cookie !== null) req.set('Cookie', cookie);
+    const res = await req;
+    this.keep(res);
+    return { status: res.status, body: res.body };
+  }
+
+  /** Ends the session presented by `cookie` (default: the stored one). */
+  async logout(
+    cookie: string | null = this.refreshCookie
+  ): Promise<ClientResponse & { setCookie: string[] }> {
+    const req = request(this.app).post('/api/v1/session/logout');
+    if (cookie !== null) req.set('Cookie', cookie);
+    const res = await req;
+    this.keep(res);
+    return {
+      status: res.status,
+      body: res.body,
+      setCookie: (res.headers['set-cookie'] as unknown as string[] | undefined) ?? [],
+    };
+  }
+
+  /** Mirrors a browser: a new refresh cookie replaces the old one, a cleared one drops the session. */
+  private keep(res: request.Response): void {
+    if (typeof res.body?.accessToken === 'string') this.accessToken = res.body.accessToken;
+    const cookies = (res.headers['set-cookie'] as unknown as string[] | undefined) ?? [];
+    const header = cookies.find((c) => c.startsWith('refresh_token='));
+    if (header === undefined) return;
+    const pair = header.split(';')[0]!;
+    if (pair === 'refresh_token=') {
+      this.refreshCookie = null;
+      this.accessToken = null;
+    } else {
+      this.refreshCookie = pair;
+    }
+  }
 
   async status(): Promise<ClientResponse> {
     const res = await request(this.app).get('/api/v1/status');

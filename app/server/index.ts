@@ -1,4 +1,3 @@
-import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -7,6 +6,7 @@ import { createPrismaClient } from './db/client';
 import { runMigrations } from './db/migrate';
 import { logger } from './logger';
 import { createServer } from './server';
+import { getOrCreateJwtSecret } from './services/token';
 import { startVault } from './startup';
 import { APP_VERSION } from './utils/app-version';
 
@@ -28,9 +28,8 @@ fs.mkdirSync(config.blobsDir, { recursive: true });
   const prisma = createPrismaClient(`file:${dbPath}`);
   await runMigrations(prisma);
 
-  // Task 6 replaces this with `getOrCreateJwtSecret(prisma)`, which persists
-  // the secret so tokens survive a restart. Nothing reads it yet.
-  const jwtSecret = crypto.randomBytes(32);
+  // Persisted in the settings table so a signed-in browser survives a restart.
+  const jwtSecret = await getOrCreateJwtSecret(prisma);
 
   const server = createServer({ config, prisma, jwtSecret });
 
