@@ -1,0 +1,12 @@
+{
+  "name": "scribe-client",
+  "private": true,
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "echo 'no client yet'",
+    "lint": "echo 'no client yet'",
+    "lint:fix": "echo 'no client yet'"
+  }
+}
