@@ -10,6 +10,7 @@ import { logger } from '../logger';
 import { createIpRateLimit } from '../middleware/rate-limit';
 import { createLibrary, getLibrary, LibraryExistsError } from '../services/library';
 import type { AppConfig } from '../types';
+import { base64Bytes } from '../utils/base64-schema';
 
 const log = logger('LibraryRoute');
 
@@ -18,15 +19,6 @@ export type LibraryRouterDeps = {
   config: AppConfig;
   now: () => number;
 };
-
-/** Canonical base64 only: decoding and re-encoding must round-trip, so junk is a 400 rather than silently truncated. */
-const base64Bytes = (min: number, max: number) =>
-  z
-    .string()
-    .max(max * 2)
-    .refine((s) => Buffer.from(s, 'base64').toString('base64') === s, 'not canonical base64')
-    .transform((s) => Buffer.from(s, 'base64'))
-    .refine((b) => b.length >= min && b.length <= max, 'wrong length');
 
 /**
  * A key wrap is a sealed 32-byte Library Key: header + 32 + tag, exactly. A

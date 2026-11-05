@@ -10,6 +10,7 @@ import {
   formatSecretKey,
   generateRecoveryCode,
   generateSecretKey,
+  parseSecretKey,
 } from '../crypto/codes';
 import { deriveAccountKeys } from '../crypto/kdf';
 import { keyWrapAad, seal } from '../crypto/seal';
@@ -24,6 +25,17 @@ export type ClientBody = {
   libraryId?: string;
   deviceId?: string;
   deviceToken?: string;
+  passwordWrap?: string;
+  devices?: Array<{
+    id: string;
+    name: string;
+    createdAt: number;
+    lastSeenAt: number | null;
+    revokedAt: number | null;
+    isCurrent: boolean;
+  }>;
+  id?: string;
+  name?: string;
 };
 
 export type ClientResponse = { status: number; body: ClientBody };
@@ -55,6 +67,59 @@ export class VaultClient {
 
   async salts(): Promise<ClientResponse> {
     const res = await request(this.app).get('/api/v1/library/salts');
+    return { status: res.status, body: res.body };
+  }
+
+  /**
+   * Joins the library as a further Mac: fetches the salts, derives the auth
+   * key from password + Secret Key, and posts it. Returns the raw response and
+   * stores nothing; the caller unwraps `passwordWrap` itself if it cares.
+   */
+  async enrol(input: {
+    password: string;
+    secretKey: string;
+    name: string;
+  }): Promise<ClientResponse> {
+    const salts = await this.salts();
+    const secretKey = parseSecretKey(input.secretKey);
+    if (salts.status !== 200 || secretKey === null || salts.body.passwordSalt === undefined) {
+      throw new Error('enrol: could not fetch salts or parse the Secret Key');
+    }
+    const { authKey } = deriveAccountKeys({
+      secret: Buffer.from(input.password, 'utf8'),
+      secretKey,
+      salt: Buffer.from(salts.body.passwordSalt, 'base64'),
+    });
+    return this.postDevice({ authKey: authKey.toString('base64'), name: input.name });
+  }
+
+  /** POST /devices with an arbitrary body, for shape-validation tests. */
+  async postDevice(body: unknown): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .post('/api/v1/devices')
+      .send(body as object);
+    return { status: res.status, body: res.body };
+  }
+
+  async devices(token: string): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .get('/api/v1/devices')
+      .set('Authorization', `Bearer ${token}`);
+    return { status: res.status, body: res.body };
+  }
+
+  async renameDevice(token: string, id: string, name: string): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .patch(`/api/v1/devices/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name });
+    return { status: res.status, body: res.body };
+  }
+
+  async revokeDevice(token: string, id: string): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .delete(`/api/v1/devices/${id}`)
+      .set('Authorization', `Bearer ${token}`);
     return { status: res.status, body: res.body };
   }
 
