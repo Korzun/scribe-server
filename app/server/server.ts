@@ -5,6 +5,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import { logger } from './logger';
 import { requestLog } from './middleware/request-log';
 import { requestTimeout } from './middleware/timeout';
+import { createDevicesRouter } from './routes/devices';
 import { createLibraryRouter } from './routes/library';
 import { createStatusRouter } from './routes/status';
 import { AppConfig } from './types';
@@ -38,6 +39,7 @@ export function createServer({
   server.use('/api/v1/status', createStatusRouter({ prisma, version: APP_VERSION }));
 
   server.use('/api/v1', createLibraryRouter({ prisma, config, now }));
+  server.use('/api/v1', createDevicesRouter({ prisma, config, now }));
 
   // Any other /api path is a JSON 404, so API clients never receive HTML.
   server.use('/api/{*splat}', (_req: Request, res: Response): void => {

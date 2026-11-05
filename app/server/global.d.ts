@@ -9,6 +9,8 @@ declare global {
     interface Request {
       /** Set by `deviceAuth` once a device token has been verified. */
       device?: { id: string };
+      /** Set by `ownerAuth`: who is acting as the owner. Task 6 adds `{ via: 'session' }`. */
+      owner?: { via: 'device'; deviceId: string };
     }
   }
 }
