@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Small key/value store for instance-level state (the library id until the
+// `library` table exists, later the signing secret and similar).
+model Setting {
+  key   String @id
+  value String
+
+  @@map("settings")
+}
+
+// Only a SHA-256 hash of each refresh token is stored, never the token. The
+// expiry is milliseconds since epoch; Float avoids Int's 32-bit validation
+// limit while still round-tripping correctly through SQLite's INTEGER affinity.
+model RefreshToken {
+  tokenHash String @id @map("token_hash")
+  expiresAt Float  @map("expires_at")
+
+  @@map("refresh_tokens")
+}
