@@ -3,6 +3,7 @@ import * as argon2 from 'argon2';
 
 import { logger } from '../logger';
 import { generateId } from '../utils/id';
+import { newDeviceToken } from './device';
 
 const log = logger('Library');
 
@@ -16,6 +17,8 @@ export type CreateLibraryInput = {
   authKey: Buffer;
   passwordWrap: Buffer;
   recoveryCodes: Array<{ authKey: Buffer; wrap: Buffer }>;
+  /** The first device, created in the same transaction so a half-made vault cannot exist. */
+  device: { name: string };
 };
 
 /** A vault holds exactly one library; a second creation is refused. */
@@ -41,30 +44,39 @@ function hashAuthKey(authKey: Buffer): Promise<string> {
 }
 
 /**
- * Creates the vault's one library with its ten recovery codes, atomically.
- * Hashing happens before the transaction opens so the (slow) argon2 work does
- * not hold SQLite's write lock; the existence check lives inside it so two
- * racing creations cannot both succeed.
+ * Creates the vault's one library with its ten recovery codes and its first
+ * device, atomically: a failure at any step leaves nothing behind, so setup can
+ * simply be retried. Hashing happens before the transaction opens so the (slow)
+ * argon2 work does not hold SQLite's write lock; the existence check lives
+ * inside it so two racing creations cannot both succeed. `now` is the caller's
+ * injected clock.
  */
 export async function createLibrary(
   prisma: PrismaClient,
-  input: CreateLibraryInput
-): Promise<{ libraryId: string }> {
+  input: CreateLibraryInput,
+  now: number
+): Promise<{ libraryId: string; deviceId: string; token: string }> {
   if (input.recoveryCodes.length !== RECOVERY_CODE_COUNT) {
     throw new Error(
       `A library needs exactly ten recovery codes, got ${input.recoveryCodes.length}`
     );
   }
 
+  // Sequential on purpose: node-argon2's 64 MiB default times eleven in
+  // parallel is a real memory peak on a Raspberry Pi. One-time cost per vault.
   const authVerifier = await hashAuthKey(input.authKey);
-  const codeVerifiers = await Promise.all(input.recoveryCodes.map((c) => hashAuthKey(c.authKey)));
+  const codeVerifiers: string[] = [];
+  for (const code of input.recoveryCodes) codeVerifiers.push(await hashAuthKey(code.authKey));
+
+  const { token, tokenHash } = newDeviceToken();
+  const deviceId = generateId();
 
   await prisma.$transaction(async (tx) => {
     if ((await tx.library.count()) > 0) throw new LibraryExistsError();
     await tx.library.create({
       data: {
         id: input.libraryId,
-        createdAt: Date.now(),
+        createdAt: now,
         passwordSalt: bytes(input.passwordSalt),
         recoverySalt: bytes(input.recoverySalt),
         authVerifier,
@@ -79,10 +91,19 @@ export async function createLibrary(
         wrap: bytes(c.wrap),
       })),
     });
+    await tx.device.create({
+      data: {
+        id: deviceId,
+        libraryId: input.libraryId,
+        name: input.device.name,
+        tokenHash,
+        createdAt: now,
+      },
+    });
   });
 
-  log.info(`Library created: ${input.libraryId}`);
-  return { libraryId: input.libraryId };
+  log.info(`Library created: ${input.libraryId}, first device ${deviceId}`);
+  return { libraryId: input.libraryId, deviceId, token };
 }
 
 /** The vault's library, or `null` before setup. */

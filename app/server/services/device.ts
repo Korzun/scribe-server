@@ -15,6 +15,16 @@ function hashToken(token: string): string {
 }
 
 /**
+ * The one definition of the device-token format (spec §5): 32 random bytes,
+ * base64url, with only its SHA-256 hex stored. Shared by first-device creation
+ * (inside the library transaction) and later enrolment.
+ */
+export function newDeviceToken(): { token: string; tokenHash: string } {
+  const token = crypto.randomBytes(32).toString('base64url');
+  return { token, tokenHash: hashToken(token) };
+}
+
+/**
  * Mints a device token (spec §5): 32 random bytes, base64url. Only its SHA-256
  * is stored, so a database leak yields nothing a client could present. The
  * token itself is returned once and never recoverable afterwards.
@@ -23,14 +33,14 @@ export async function issueDeviceToken(
   prisma: PrismaClient,
   input: { libraryId: string; name: string; now: number }
 ): Promise<{ deviceId: string; token: string }> {
-  const token = crypto.randomBytes(32).toString('base64url');
+  const { token, tokenHash } = newDeviceToken();
   const deviceId = generateId();
   await prisma.device.create({
     data: {
       id: deviceId,
       libraryId: input.libraryId,
       name: input.name,
-      tokenHash: hashToken(token),
+      tokenHash,
       createdAt: input.now,
     },
   });

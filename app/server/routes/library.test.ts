@@ -2,6 +2,7 @@ import * as crypto from 'crypto';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { seal } from '../crypto/seal';
 import { createHarness, type Harness } from '../test-support/harness';
 import {
   createOwner,
@@ -23,6 +24,9 @@ afterEach(async () => {
 });
 
 const b64 = (n: number): string => crypto.randomBytes(n).toString('base64');
+/** A correctly shaped wrap: a real sealed blob of a random 32-byte key. */
+const wrap = (): string =>
+  seal(crypto.randomBytes(32), crypto.randomBytes(32), 'aad').toString('base64');
 
 /** A well-formed body with random bytes: the server cannot tell it from real keys, and it costs no PBKDF2. */
 function cheapBody(setupCode: string): CreateLibraryRequest {
@@ -32,8 +36,8 @@ function cheapBody(setupCode: string): CreateLibraryRequest {
     passwordSalt: b64(16),
     recoverySalt: b64(16),
     authKey: b64(32),
-    passwordWrap: b64(60),
-    recoveryCodes: Array.from({ length: 10 }, () => ({ authKey: b64(32), wrap: b64(60) })),
+    passwordWrap: wrap(),
+    recoveryCodes: Array.from({ length: 10 }, () => ({ authKey: b64(32), wrap: wrap() })),
     device: { name: 'Test Mac' },
   };
 }
@@ -81,7 +85,15 @@ describe('POST /api/v1/library', () => {
     });
     const notBase64 = await client.createLibrary({ ...body, authKey: '***' });
 
-    for (const res of [missing, notTen, notBase64]) {
+    const tiny = await client.createLibrary({ ...body, passwordWrap: b64(1) });
+    // Right length (4+1+12+32+16 = 65) but not a sealed blob.
+    const unsealed = await client.createLibrary({ ...body, passwordWrap: b64(65) });
+    const badRecoveryWrap = await client.createLibrary({
+      ...body,
+      recoveryCodes: [{ authKey: b64(32), wrap: b64(65) }, ...body.recoveryCodes.slice(1)],
+    });
+
+    for (const res of [missing, notTen, notBase64, tiny, unsealed, badRecoveryWrap]) {
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: 'Invalid request' });
     }
