@@ -5,6 +5,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import { logger } from './logger';
 import { requestLog } from './middleware/request-log';
 import { requestTimeout } from './middleware/timeout';
+import { createLibraryRouter } from './routes/library';
 import { createStatusRouter } from './routes/status';
 import { AppConfig } from './types';
 import { APP_VERSION } from './utils/app-version';
@@ -20,7 +21,11 @@ export type CreateServerDeps = {
   now?: () => number;
 };
 
-export function createServer({ prisma }: CreateServerDeps): express.Express {
+export function createServer({
+  config,
+  prisma,
+  now = Date.now,
+}: CreateServerDeps): express.Express {
   const server = express();
 
   // Respond with a clean 503 before a ~100s proxy timeout turns into a 524.
@@ -31,6 +36,8 @@ export function createServer({ prisma }: CreateServerDeps): express.Express {
   server.use(cookieParser());
 
   server.use('/api/v1/status', createStatusRouter({ prisma, version: APP_VERSION }));
+
+  server.use('/api/v1', createLibraryRouter({ prisma, config, now }));
 
   // Any other /api path is a JSON 404, so API clients never receive HTML.
   server.use('/api/{*splat}', (_req: Request, res: Response): void => {

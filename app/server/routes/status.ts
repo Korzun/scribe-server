@@ -17,10 +17,7 @@ export function createStatusRouter({ prisma, version }: StatusRouterDeps): Route
 
   router.get('/', async (_req, res, next) => {
     try {
-      // Task 4 replaces this with `(await prisma.library.count()) > 0` once the
-      // `library` table exists; until then the library id lives in `settings`.
-      const libraryExists =
-        (await prisma.setting.findUnique({ where: { key: 'library_id' } })) !== null;
+      const libraryExists = (await prisma.library.count()) > 0;
       res.json({ libraryExists, version });
     } catch (err) {
       next(err);

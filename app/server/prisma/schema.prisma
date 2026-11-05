@@ -24,3 +24,51 @@ model RefreshToken {
 
   @@map("refresh_tokens")
 }
+
+// The one library a vault holds (spec §4). The server never sees a key in the
+// clear: it keeps the salts the client needs to re-derive its keys, an argon2id
+// verifier of the client-derived auth key, and the Library Key wrapped under
+// the password-derived key. `createdAt` is ms since epoch (Float, see above).
+model Library {
+  id           String @id
+  createdAt    Float  @map("created_at")
+  passwordSalt Bytes  @map("password_salt")
+  recoverySalt Bytes  @map("recovery_salt")
+  authVerifier String @map("auth_verifier")
+  passwordWrap Bytes  @map("password_wrap")
+
+  recoveryCodes RecoveryCode[]
+  devices       Device[]
+
+  @@map("libraries")
+}
+
+// One of the ten single-use recovery codes minted at setup. Each carries its
+// own verifier and its own wrap of the Library Key; `usedAt` marks it spent.
+model RecoveryCode {
+  id           String  @id
+  libraryId    String  @map("library_id")
+  authVerifier String  @map("auth_verifier")
+  wrap         Bytes
+  usedAt       Float?  @map("used_at")
+  library      Library @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+
+  @@index([libraryId])
+  @@map("recovery_codes")
+}
+
+// A Mac (or other client) holding a device token (spec §5). Only the SHA-256
+// of the token is stored, so a database leak does not yield usable tokens.
+model Device {
+  id         String  @id
+  libraryId  String  @map("library_id")
+  name       String
+  tokenHash  String  @unique @map("token_hash")
+  createdAt  Float   @map("created_at")
+  lastSeenAt Float?  @map("last_seen_at")
+  revokedAt  Float?  @map("revoked_at")
+  library    Library @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+
+  @@index([libraryId])
+  @@map("devices")
+}

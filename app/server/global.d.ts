@@ -4,4 +4,13 @@
 // build's type-check does not depend on which files happen to exist yet.
 /// <reference types="node" />
 
+declare global {
+  namespace Express {
+    interface Request {
+      /** Set by `deviceAuth` once a device token has been verified. */
+      device?: { id: string };
+    }
+  }
+}
+
 export {};
