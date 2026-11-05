@@ -80,4 +80,26 @@ describe('seal', () => {
     expect(sealed.toString('hex')).toBe(v.blob.sealed);
     expect(open(libraryKey, sealed, v.blob.aad).toString('hex')).toBe(v.inputs.plaintext);
   });
+
+  it('reproduces the vector aad strings and key wraps', () => {
+    const v = JSON.parse(
+      fs.readFileSync(
+        path.resolve(__dirname, '../../../test/vectors/scribe-crypto-v1.json'),
+        'utf8'
+      )
+    );
+    const hex = (s: string) => Buffer.from(s, 'hex');
+    expect(keyWrapAad(v.inputs.libraryId, 'password')).toBe(v.wraps.passwordAad);
+    expect(keyWrapAad(v.inputs.libraryId, 'recovery')).toBe(v.wraps.recoveryAad);
+    expect(blobAad(v.inputs.libraryId, v.inputs.meetingId, 'transcript', 1)).toBe(v.blob.aad);
+    const libraryKey = hex(v.inputs.libraryKey);
+    const nonce = hex(v.inputs.nonce);
+    for (const slot of ['password', 'recovery'] as const) {
+      const kek = hex(v[slot].kek);
+      const aadStr = v.wraps[`${slot}Aad`];
+      const wrap = seal(kek, libraryKey, aadStr, nonce);
+      expect(wrap.toString('hex')).toBe(v.wraps[slot]);
+      expect(open(kek, hex(v.wraps[slot]), aadStr).equals(libraryKey)).toBe(true);
+    }
+  });
 });

@@ -3,7 +3,7 @@ import * as path from 'path';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { deriveAccountKeys, PBKDF2_ITERATIONS } from './kdf';
+import { deriveAccountKeys, deriveIntermediates, PBKDF2_ITERATIONS } from './kdf';
 
 const secret = Buffer.from('correct horse battery staple');
 const salt = Buffer.alloc(16, 3);
@@ -40,21 +40,32 @@ describe('deriveAccountKeys', () => {
       )
     );
     const hex = (s: string) => Buffer.from(s, 'hex');
-    const pw = deriveAccountKeys({
-      secret: Buffer.from(v.inputs.password, 'utf8'),
-      secretKey: hex(v.inputs.secretKey),
-      salt: hex(v.inputs.passwordSalt),
-    });
-    expect(pw.auk.toString('hex')).toBe(v.password.auk);
-    expect(pw.kek.toString('hex')).toBe(v.password.kek);
-    expect(pw.authKey.toString('hex')).toBe(v.password.authKey);
-    const rec = deriveAccountKeys({
+    const check = (got: ReturnType<typeof deriveIntermediates>, want: Record<string, string>) => {
+      for (const name of ['kPw', 'kSk', 'auk', 'kek', 'authKey'] as const) {
+        expect(got[name].toString('hex'), name).toBe(want[name]);
+      }
+    };
+    check(
+      deriveIntermediates({
+        secret: Buffer.from(v.inputs.password, 'utf8'),
+        secretKey: hex(v.inputs.secretKey),
+        salt: hex(v.inputs.passwordSalt),
+      }),
+      v.password
+    );
+    check(
+      deriveIntermediates({
+        secret: hex(v.inputs.recoveryCode),
+        secretKey: hex(v.inputs.secretKey),
+        salt: hex(v.inputs.recoverySalt),
+      }),
+      v.recovery
+    );
+    const viaPublic = deriveAccountKeys({
       secret: hex(v.inputs.recoveryCode),
       secretKey: hex(v.inputs.secretKey),
       salt: hex(v.inputs.recoverySalt),
     });
-    expect(rec.auk.toString('hex')).toBe(v.recovery.auk);
-    expect(rec.kek.toString('hex')).toBe(v.recovery.kek);
-    expect(rec.authKey.toString('hex')).toBe(v.recovery.authKey);
+    expect(viaPublic.authKey.toString('hex')).toBe(v.recovery.authKey);
   });
 });

@@ -30,7 +30,13 @@ function hkdf(ikm: Buffer, salt: Buffer, info: string): Buffer {
   return Buffer.from(hkdfSync('sha256', ikm, salt, info, KEY_LENGTH));
 }
 
-export function deriveAccountKeys(input: { secret: Buffer; secretKey: Buffer; salt: Buffer }): {
+/**
+ * Same derivation as deriveAccountKeys but also returns the intermediates kPw
+ * and kSk, so the shared test vectors can pin every step. Do not use outside tests.
+ */
+export function deriveIntermediates(input: { secret: Buffer; secretKey: Buffer; salt: Buffer }): {
+  kPw: Buffer;
+  kSk: Buffer;
   auk: Buffer;
   kek: Buffer;
   authKey: Buffer;
@@ -41,8 +47,19 @@ export function deriveAccountKeys(input: { secret: Buffer; secretKey: Buffer; sa
   const auk = Buffer.alloc(KEY_LENGTH);
   for (let i = 0; i < KEY_LENGTH; i++) auk[i] = kPw[i] ^ kSk[i];
   return {
+    kPw,
+    kSk,
     auk,
     kek: hkdf(auk, EMPTY_SALT, 'scribe/v1/kek'),
     authKey: hkdf(auk, EMPTY_SALT, 'scribe/v1/auth'),
   };
+}
+
+export function deriveAccountKeys(input: { secret: Buffer; secretKey: Buffer; salt: Buffer }): {
+  auk: Buffer;
+  kek: Buffer;
+  authKey: Buffer;
+} {
+  const { auk, kek, authKey } = deriveIntermediates(input);
+  return { auk, kek, authKey };
 }
