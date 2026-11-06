@@ -8,7 +8,7 @@ import { logger } from './logger';
 import { createServer } from './server';
 import { createBlobStore } from './services/blob-store';
 import { createGarbageCollector } from './services/gc';
-import { getOrCreateJwtSecret } from './services/token';
+import { createJwtSecret } from './services/token';
 import { startVault } from './startup';
 import { APP_VERSION } from './utils/app-version';
 
@@ -31,7 +31,7 @@ fs.mkdirSync(config.blobsDir, { recursive: true });
   await runMigrations(prisma);
 
   // Persisted in the settings table so a signed-in browser survives a restart.
-  const jwtSecret = await getOrCreateJwtSecret(prisma);
+  const jwtSecret = await createJwtSecret(prisma);
 
   const blobStore = createBlobStore({ root: config.blobsDir });
   const gc = createGarbageCollector({ prisma, blobStore, now: Date.now });

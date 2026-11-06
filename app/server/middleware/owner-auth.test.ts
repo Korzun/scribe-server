@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { issueDeviceToken } from '../services/device';
 import { signAccessToken } from '../services/jwt';
-import { createHarness, type Harness } from '../test-support/harness';
+import { createHarness, HARNESS_JWT_SECRET, type Harness } from '../test-support/harness';
 import { deviceAuth } from './device-auth';
 import { ownerAuth } from './owner-auth';
 
@@ -35,7 +35,7 @@ beforeEach(async () => {
     now: h.now.value,
   }).then((r) => ({ token: r.token, deviceId: r.deviceId })));
 
-  const deps = { prisma: h.prisma, now: () => h.now.value, jwtSecret: Buffer.alloc(32, 7) };
+  const deps = { prisma: h.prisma, now: () => h.now.value, jwtSecret: h.jwtSecret };
   app = express();
   app.get('/device', deviceAuth(deps), (req, res) => {
     res.json({ device: req.device });
@@ -83,7 +83,7 @@ describe('ownerAuth', () => {
   });
 
   it('a valid access token sets req.owner to a session', async () => {
-    const jwt = signAccessToken(Buffer.alloc(32, 7), { owner: true }, h.now.value / 1000);
+    const jwt = signAccessToken(HARNESS_JWT_SECRET, { owner: true }, h.now.value / 1000);
     const res = await request(app).get('/owner').set('Authorization', `Bearer ${jwt}`);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ owner: { via: 'session' } });

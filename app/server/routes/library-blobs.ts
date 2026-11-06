@@ -5,11 +5,12 @@ import { ownerAuth } from '../middleware/owner-auth';
 import { libraryKindName, parseLibraryKind, type LibraryKind } from '../services/blob-kinds';
 import type { BlobStore } from '../services/blob-store';
 import { deleteBlob, LIBRARY_SCOPE } from '../services/blobs';
+import type { JwtSecret } from '../services/token';
 import { handleBlobGet, handleBlobPut, readRawBody } from './blob-handlers';
 
 export type LibraryBlobsRouterDeps = {
   prisma: PrismaClient;
-  jwtSecret: Buffer;
+  jwtSecret: JwtSecret;
   blobStore: BlobStore;
   now: () => number;
 };

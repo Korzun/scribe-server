@@ -3,10 +3,11 @@ import { Router } from 'express';
 
 import { ownerAuth } from '../middleware/owner-auth';
 import { DEFAULT_CHANGES_LIMIT, listChanges } from '../services/change-log';
+import type { JwtSecret } from '../services/token';
 
 export type ChangesRouterDeps = {
   prisma: PrismaClient;
-  jwtSecret: Buffer;
+  jwtSecret: JwtSecret;
   now: () => number;
 };
 

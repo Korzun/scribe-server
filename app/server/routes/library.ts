@@ -21,6 +21,7 @@ import {
   replaceRecoveryCodes,
   resetLibrary,
 } from '../services/library';
+import type { JwtSecret } from '../services/token';
 import type { AppConfig } from '../types';
 import { base64Bytes } from '../utils/base64-schema';
 
@@ -28,7 +29,7 @@ const log = logger('LibraryRoute');
 
 export type LibraryRouterDeps = {
   prisma: PrismaClient;
-  jwtSecret: Buffer;
+  jwtSecret: JwtSecret;
   config: AppConfig;
   blobStore: BlobStore;
   gc: GarbageCollector;
@@ -225,6 +226,16 @@ export function createLibraryRouter({
         return;
       }
       await resetLibrary(prisma, blobStore);
+      // After the wipe has committed: end every browser session of the old
+      // library, `exp` or not (refresh tokens went with the tables). A
+      // rotation that fails is logged, not fatal: the library is already gone.
+      try {
+        await jwtSecret.rotate();
+      } catch (err) {
+        log.error(
+          `Signing secret rotation failed after the reset: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
       res.status(204).end();
     } catch (err) {
       next(err);

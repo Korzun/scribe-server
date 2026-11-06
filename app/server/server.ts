@@ -15,6 +15,7 @@ import { createSessionRouter } from './routes/session';
 import { createStatusRouter } from './routes/status';
 import type { BlobStore } from './services/blob-store';
 import type { GarbageCollector } from './services/gc';
+import type { JwtSecret } from './services/token';
 import { AppConfig } from './types';
 import { APP_VERSION } from './utils/app-version';
 
@@ -23,8 +24,8 @@ const log = logger('Server');
 export type CreateServerDeps = {
   config: AppConfig;
   prisma: PrismaClient;
-  /** Signing secret for the owner's access tokens. */
-  jwtSecret: Buffer;
+  /** Signing secret for the owner's access tokens (rotated by the keys-lost reset). */
+  jwtSecret: JwtSecret;
   /** Content-addressed storage for sealed blobs, rooted at `config.blobsDir`. */
   blobStore: BlobStore;
   /** The collector `POST /library/purge` runs (the same one `startVault` runs hourly). */
