@@ -94,9 +94,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText(/Last seen 3 hours ago/)).toBeInTheDocument();
     expect(screen.getByText(/Revoked /)).toBeInTheDocument();
     expect(screen.getByText('Security')).toBeInTheDocument();
-    expect(
-      screen.getByText('Password and recovery codes — coming in the next step.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('3 remaining')).toBeInTheDocument();
   });
 
   it('signs out', async () => {

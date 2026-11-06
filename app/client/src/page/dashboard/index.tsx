@@ -128,7 +128,10 @@ export const DashboardPage = () => {
           onRename={rename}
           onRevoke={revoke}
         />
-        <SecurityCard />
+        <SecurityCard
+          recoveryCodesRemaining={library.value?.recoveryCodesRemaining}
+          onChanged={() => void refreshAll()}
+        />
       </div>
     </Page>
   );
