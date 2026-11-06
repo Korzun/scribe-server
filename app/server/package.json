@@ -12,8 +12,10 @@
     "dev": "NODE_ENV=development nodemon --watch . --ext ts,json --exec tsx index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "oxlint && oxfmt --check \"**/*.ts\" && tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
-    "lint:fix": "oxlint --fix && oxfmt \"**/*.ts\""
+    "lint": "oxlint && oxfmt --check \"**/*.ts\" && tsc --noEmit && tsc --noEmit -p tsconfig.test.json && npm run lint:cli",
+    "lint:cli": "tsc -p tsconfig.cli.json && cd ../../scripts && oxlint -c ../app/server/.oxlintrc.json vault-cli.ts && oxfmt --check vault-cli.ts",
+    "lint:fix": "oxlint --fix && oxfmt \"**/*.ts\" && cd ../../scripts && oxlint --fix -c ../app/server/.oxlintrc.json vault-cli.ts && oxfmt vault-cli.ts",
+    "vault": "tsx ../../scripts/vault-cli.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",
