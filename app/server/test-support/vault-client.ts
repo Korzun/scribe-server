@@ -72,6 +72,11 @@ export type ClientBody = {
   hasMore?: boolean;
   purgedMeetings?: number;
   removedFiles?: number;
+  uploadId?: string;
+  partSize?: number;
+  expiresAt?: number;
+  parts?: number[];
+  missing?: number[];
 };
 
 export type MeetingBlobEntry = { kind: string; revision: number; sha256: string; size: number };
@@ -565,6 +570,89 @@ export class VaultClient {
   async deleteLibrary(body: { setupCode?: unknown; confirm?: unknown }): Promise<ClientResponse> {
     const res = await request(this.app).delete('/api/v1/library').send(body);
     return { status: res.status, body: res.body };
+  }
+
+  /**
+   * POST /uploads: begins a chunked upload (spec §7). The body is sent as
+   * given, so a test can send any shape; the Mac sends `{ meetingId, kind,
+   * size, sha256, partSize?, ifMatch }`.
+   */
+  async beginUpload(token: string, body: unknown): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .post('/api/v1/uploads')
+      .set('Authorization', `Bearer ${token}`)
+      .send(body as object);
+    return { status: res.status, body: res.body };
+  }
+
+  /** PUT /uploads/:id/parts/:n with the part's bytes as `application/octet-stream`. */
+  async putPart(
+    token: string,
+    uploadId: string,
+    n: number | string,
+    bytes: Buffer
+  ): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .put(`/api/v1/uploads/${uploadId}/parts/${n}`)
+      .set('Authorization', `Bearer ${token}`)
+      .set('Content-Type', 'application/octet-stream')
+      .send(bytes);
+    return { status: res.status, body: res.body };
+  }
+
+  /** GET /uploads/:id: which parts the vault has, so a Mac can resume. */
+  async inspectUpload(token: string, uploadId: string): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .get(`/api/v1/uploads/${uploadId}`)
+      .set('Authorization', `Bearer ${token}`);
+    return { status: res.status, body: res.body };
+  }
+
+  /** POST /uploads/:id/complete: assemble, verify, store. */
+  async completeUpload(token: string, uploadId: string): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .post(`/api/v1/uploads/${uploadId}/complete`)
+      .set('Authorization', `Bearer ${token}`);
+    return { status: res.status, body: res.body };
+  }
+
+  /** DELETE /uploads/:id: abandons the session and its parts. */
+  async abortUpload(token: string, uploadId: string): Promise<ClientResponse> {
+    return this.deletePath(`/api/v1/uploads/${uploadId}`, token);
+  }
+
+  /**
+   * The whole dance as the Mac performs it (spec §7): begin with the blob's
+   * size and SHA-256, PUT every part (last first, to prove order does not
+   * matter), complete. Returns the begin answer if it fails, else the
+   * completion answer, whose `sha256` the Mac compares with its own before
+   * deleting anything. `meetingId: null` uploads a library blob.
+   */
+  async upload(input: {
+    token: string;
+    meetingId: string | null;
+    kind: string;
+    bytes: Buffer;
+    partSize: number;
+    ifMatch: number | null;
+  }): Promise<ClientResponse> {
+    const begun = await this.beginUpload(input.token, {
+      meetingId: input.meetingId,
+      kind: input.kind,
+      size: input.bytes.length,
+      sha256: crypto.createHash('sha256').update(input.bytes).digest('hex'),
+      partSize: input.partSize,
+      ifMatch: input.ifMatch,
+    });
+    if (begun.status !== 201) return begun;
+    const { uploadId, partSize } = begun.body as { uploadId: string; partSize: number };
+    const count = Math.ceil(input.bytes.length / partSize);
+    for (let n = count - 1; n >= 0; n--) {
+      const part = input.bytes.subarray(n * partSize, (n + 1) * partSize);
+      const res = await this.putPart(input.token, uploadId, n, part);
+      if (res.status !== 204) throw new Error(`upload: part ${n} answered ${res.status}`);
+    }
+    return this.completeUpload(input.token, uploadId);
   }
 
   private async deletePath(url: string, token: string): Promise<ClientResponse> {
