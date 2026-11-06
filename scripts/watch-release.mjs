@@ -57,7 +57,7 @@ export async function pollUntil({ probe, intervalMs, timeoutMs, now, sleep, labe
   }
 }
 
-const REPO = 'Korzun/scribe-homeassistant';
+const REPO = 'Korzun/scribe-server';
 const PUBLISH_WORKFLOW = 'release-publish.yml';
 
 // `gh pr checks` exits non-zero while checks are pending or failing, so its
