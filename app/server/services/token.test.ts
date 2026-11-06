@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createHarness, type Harness } from '../test-support/harness';
 import {
   consumeRefreshToken,
+  createJwtSecret,
   createRefreshToken,
   deleteExpired,
   getOrCreateJwtSecret,
@@ -26,6 +27,23 @@ describe('getOrCreateJwtSecret', () => {
 
     expect(first).toHaveLength(32);
     expect(second.equals(first)).toBe(true);
+  });
+});
+
+describe('createJwtSecret', () => {
+  it('starts from the stored secret, and rotate() changes current() and the settings row', async () => {
+    const stored = await getOrCreateJwtSecret(h.prisma);
+    const secret = await createJwtSecret(h.prisma);
+    expect(secret.current().equals(stored)).toBe(true);
+
+    const rotated = await secret.rotate();
+
+    expect(rotated).toHaveLength(32);
+    expect(rotated.equals(stored)).toBe(false);
+    expect(secret.current().equals(rotated)).toBe(true);
+    const row = await h.prisma.setting.findUnique({ where: { key: 'jwt_secret' } });
+    expect(row?.value).toBe(rotated.toString('hex'));
+    expect((await createJwtSecret(h.prisma)).current().equals(rotated)).toBe(true);
   });
 });
 

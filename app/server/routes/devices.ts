@@ -7,6 +7,7 @@ import { ownerAuth } from '../middleware/owner-auth';
 import { createIpRateLimit } from '../middleware/rate-limit';
 import { issueDeviceToken } from '../services/device';
 import { getLibrary, verifyOwner } from '../services/library';
+import type { JwtSecret } from '../services/token';
 import type { AppConfig } from '../types';
 import { base64Bytes } from '../utils/base64-schema';
 
@@ -14,7 +15,7 @@ const log = logger('DevicesRoute');
 
 export type DevicesRouterDeps = {
   prisma: PrismaClient;
-  jwtSecret: Buffer;
+  jwtSecret: JwtSecret;
   config: AppConfig;
   now: () => number;
 };

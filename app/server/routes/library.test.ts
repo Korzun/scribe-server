@@ -449,10 +449,37 @@ describe('DELETE /api/v1/library (keys lost)', () => {
     ]) {
       expect(await count).toBe(0);
     }
-    expect(await h.prisma.setting.findMany({ orderBy: { key: 'asc' } })).toEqual(settingsBefore);
+    // `settings` survives the reset, except the signing secret, which is rotated.
+    const settingsAfter = await h.prisma.setting.findMany({ orderBy: { key: 'asc' } });
+    expect(settingsAfter.map((r) => r.key)).toEqual(settingsBefore.map((r) => r.key));
+    const isSecret = (r: { key: string }) => r.key === 'jwt_secret';
+    expect(settingsAfter.filter((r) => !isSecret(r))).toEqual(
+      settingsBefore.filter((r) => !isSecret(r))
+    );
+    expect(settingsAfter.find(isSecret)?.value).not.toBe(settingsBefore.find(isSecret)?.value);
     expect(fs.existsSync(h.blobsDir)).toBe(true);
     expect(fs.readdirSync(h.blobsDir)).toEqual([]);
     expect((await client.libraryInfo(token)).status).toBe(401);
+  });
+
+  it('the reset rotates the signing secret: an unexpired browser access token is 401 afterwards', async () => {
+    writeSetupCode(h.dataDir, 'the-code');
+    const body = cheapBody('the-code');
+    expect((await client.createLibrary(body)).status).toBe(201);
+    const browser = new VaultClient(h.app);
+    expect((await browser.postSession({ authKey: body.authKey })).status).toBe(200);
+    const accessToken = browser.asSession();
+    expect((await client.devices(accessToken)).status).toBe(200);
+
+    expect((await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' })).status).toBe(
+      204
+    );
+    await cheapLibrary('the-code');
+
+    // The clock has not moved: the token's `exp` is still ahead, only its key is gone.
+    const after = await client.devices(accessToken);
+    expect(after.status).toBe(401);
+    expect(after.body).toEqual({ error: 'Unauthorized' });
   });
 
   it('after deletion a new library can be created', async () => {

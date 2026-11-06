@@ -28,6 +28,36 @@ export async function getOrCreateJwtSecret(prisma: PrismaClient): Promise<Buffer
   return Buffer.from(row.value, 'hex');
 }
 
+/**
+ * The live HS256 signing secret. Every sign and verify reads `current()`, so
+ * `rotate()` invalidates every access token issued before it at once, `exp`
+ * or not. The keys-lost reset (spec §9) rotates: a browser that was signed in
+ * to the deleted library must not be signed in to the one created after it.
+ */
+export type JwtSecret = {
+  current(): Buffer;
+  /** Writes 32 fresh random bytes to `settings.jwt_secret`, then swaps the in-memory value. */
+  rotate(): Promise<Buffer>;
+};
+
+/** Loads (or, on first boot, creates) the stored secret and wraps it in a `JwtSecret`. */
+export async function createJwtSecret(prisma: PrismaClient): Promise<JwtSecret> {
+  let secret = await getOrCreateJwtSecret(prisma);
+  return {
+    current: () => secret,
+    async rotate() {
+      const next = crypto.randomBytes(32);
+      await prisma.setting.upsert({
+        where: { key: JWT_SECRET_KEY },
+        create: { key: JWT_SECRET_KEY, value: next.toString('hex') },
+        update: { value: next.toString('hex') },
+      });
+      secret = next;
+      return next;
+    },
+  };
+}
+
 /** Issues a refresh token (32 random bytes, base64url) valid for 30 days from `now`. */
 export async function createRefreshToken(prisma: PrismaClient, now: number): Promise<string> {
   const token = crypto.randomBytes(32).toString('base64url');

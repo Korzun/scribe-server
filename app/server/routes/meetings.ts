@@ -5,11 +5,12 @@ import { ownerAuth } from '../middleware/owner-auth';
 import { isMeetingKind, normalizeUuid } from '../services/blob-kinds';
 import type { BlobStore } from '../services/blob-store';
 import { tombstoneMeeting } from '../services/blobs';
+import type { JwtSecret } from '../services/token';
 import { handleBlobGet, handleBlobPut, readRawBody } from './blob-handlers';
 
 export type MeetingsRouterDeps = {
   prisma: PrismaClient;
-  jwtSecret: Buffer;
+  jwtSecret: JwtSecret;
   blobStore: BlobStore;
   now: () => number;
 };

@@ -12,6 +12,7 @@ import {
   deleteExpired,
   REFRESH_TOKEN_TTL_MS,
   revokeRefreshToken,
+  type JwtSecret,
 } from '../services/token';
 import type { AppConfig } from '../types';
 import { base64Bytes } from '../utils/base64-schema';
@@ -20,7 +21,7 @@ const log = logger('SessionRoute');
 
 export type SessionRouterDeps = {
   prisma: PrismaClient;
-  jwtSecret: Buffer;
+  jwtSecret: JwtSecret;
   config: AppConfig;
   now: () => number;
 };
@@ -63,7 +64,7 @@ export function createSessionRouter({ prisma, jwtSecret, config, now }: SessionR
   const secure = config.publicUrl?.startsWith('https') === true;
 
   async function issueTokens(res: Response): Promise<void> {
-    const accessToken = signAccessToken(jwtSecret, { owner: true }, now() / 1000);
+    const accessToken = signAccessToken(jwtSecret.current(), { owner: true }, now() / 1000);
     const refreshToken = await createRefreshToken(prisma, now());
     res.cookie(REFRESH_COOKIE, refreshToken, {
       httpOnly: true,

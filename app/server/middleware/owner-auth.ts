@@ -3,10 +3,11 @@ import type { NextFunction, Request, Response } from 'express';
 
 import { authenticateDevice } from '../services/device';
 import { verifyAccessToken } from '../services/jwt';
+import type { JwtSecret } from '../services/token';
 
 export type OwnerAuthDeps = {
   prisma: PrismaClient;
-  jwtSecret: Buffer;
+  jwtSecret: JwtSecret;
   now: () => number;
 };
 
@@ -32,7 +33,7 @@ export function ownerAuth({ prisma, jwtSecret, now }: OwnerAuthDeps) {
       // does, so the shape alone says which check to run. The JWT is judged
       // against the injected clock, like everything else that expires.
       if (bearer.includes('.')) {
-        if (verifyAccessToken(jwtSecret, bearer, now() / 1000) === null) {
+        if (verifyAccessToken(jwtSecret.current(), bearer, now() / 1000) === null) {
           res.status(401).json({ error: 'Unauthorized' });
           return;
         }

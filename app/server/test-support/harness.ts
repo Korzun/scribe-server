@@ -10,7 +10,11 @@ import { runMigrations } from '../db/migrate';
 import { createServer } from '../server';
 import { createBlobStore, type BlobStore } from '../services/blob-store';
 import { createGarbageCollector, type GarbageCollector } from '../services/gc';
+import { createJwtSecret, type JwtSecret } from '../services/token';
 import type { AppConfig } from '../types';
+
+/** The secret the harness's signing secret starts as. */
+export const HARNESS_JWT_SECRET = Buffer.alloc(32, 7);
 
 export type Harness = {
   app: express.Express;
@@ -20,6 +24,8 @@ export type Harness = {
   blobsDir: string;
   /** The store the app writes through, on `blobsDir`. */
   blobStore: BlobStore;
+  /** The app's signing secret, seeded with `HARNESS_JWT_SECRET`. */
+  jwtSecret: JwtSecret;
   /** The collector the app's purge route runs, on the fake clock. */
   gc: GarbageCollector;
   /** Mutable fake clock; every dep that reads time reads this. */
@@ -51,13 +57,19 @@ export async function createHarness(): Promise<Harness> {
   const prisma = createPrismaClient(`file:${path.join(dataDir, 'db.sqlite')}`);
   await runMigrations(prisma);
 
+  // A fixed starting secret, so a test can mint a token without the holder.
+  await prisma.setting.create({
+    data: { key: 'jwt_secret', value: HARNESS_JWT_SECRET.toString('hex') },
+  });
+  const jwtSecret = await createJwtSecret(prisma);
+
   const now = { value: 1_700_000_000_000 };
   const blobStore = createBlobStore({ root: blobsDir });
   const gc = createGarbageCollector({ prisma, blobStore, now: () => now.value });
   const app = createServer({
     config,
     prisma,
-    jwtSecret: Buffer.alloc(32, 7),
+    jwtSecret,
     blobStore,
     gc,
     now: () => now.value,
@@ -70,6 +82,7 @@ export async function createHarness(): Promise<Harness> {
     dataDir,
     blobsDir,
     blobStore,
+    jwtSecret,
     gc,
     now,
     async close() {
