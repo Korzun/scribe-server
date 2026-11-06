@@ -8,7 +8,7 @@ import {
   parseRecoveryCode,
   parseSecretKey,
 } from '../crypto/codes';
-import { deriveAccountKeys } from '../crypto/kdf';
+import { deriveAccountKeys, passwordBytes } from '../crypto/kdf';
 import { keyWrapAad, open, seal } from '../crypto/seal';
 
 /** Every field any route answers with, all optional: later tasks add theirs here. */
@@ -223,7 +223,7 @@ export class HttpVaultClient {
       throw new Error('login: could not fetch salts or parse the Secret Key');
     }
     const { authKey } = deriveAccountKeys({
-      secret: Buffer.from(input.password, 'utf8'),
+      secret: passwordBytes(input.password),
       secretKey,
       salt: Buffer.from(salts.body.passwordSalt, 'base64'),
     });
@@ -305,7 +305,7 @@ export class HttpVaultClient {
       throw new Error('enrol: could not fetch salts or parse the Secret Key');
     }
     const { authKey } = deriveAccountKeys({
-      secret: Buffer.from(input.password, 'utf8'),
+      secret: passwordBytes(input.password),
       secretKey,
       salt: Buffer.from(salts.body.passwordSalt, 'base64'),
     });
@@ -358,7 +358,7 @@ export class HttpVaultClient {
     const { libraryKey, authKey, libraryId } = await this.unlock(input);
     const newPasswordSalt = crypto.randomBytes(16);
     const next = deriveAccountKeys({
-      secret: Buffer.from(input.newPassword, 'utf8'),
+      secret: passwordBytes(input.newPassword),
       secretKey: parseSecretKey(input.secretKey)!,
       salt: newPasswordSalt,
     });
@@ -435,7 +435,7 @@ export class HttpVaultClient {
     );
     const newPasswordSalt = crypto.randomBytes(16);
     const next = deriveAccountKeys({
-      secret: Buffer.from(input.newPassword, 'utf8'),
+      secret: passwordBytes(input.newPassword),
       secretKey,
       salt: newPasswordSalt,
     });
@@ -471,7 +471,7 @@ export class HttpVaultClient {
     const secretKey = parseSecretKey(input.secretKey);
     if (secretKey === null) throw new Error('unlock: could not parse the Secret Key');
     const keys = deriveAccountKeys({
-      secret: Buffer.from(input.password, 'utf8'),
+      secret: passwordBytes(input.password),
       secretKey,
       salt: Buffer.from(info.body.passwordSalt!, 'base64'),
     });
@@ -727,7 +727,7 @@ export function buildLibraryRequest(opts: { setupCode: string; password: string;
 
   // One PBKDF2 (650 000 iterations) per code: the dominant cost of this helper.
   const password = deriveAccountKeys({
-    secret: Buffer.from(opts.password, 'utf8'),
+    secret: passwordBytes(opts.password),
     secretKey: secretKeyBytes,
     salt: passwordSalt,
   });

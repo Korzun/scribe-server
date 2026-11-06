@@ -20,8 +20,8 @@ let owner: Owner;
 beforeAll(async () => {
   h = await createHarness();
   client = new VaultClient(h.app);
-  writeSetupCode(h.dataDir, 'code');
-  owner = await createOwner(client, { setupCode: 'code' });
+  writeSetupCode(h.dataDir, 'test-setup-code');
+  owner = await createOwner(client, { setupCode: 'test-setup-code' });
 }, 60_000);
 afterAll(async () => {
   await h.close();
@@ -307,26 +307,38 @@ describe('PUT /api/v1/meetings/:id/blobs/:kind', () => {
   });
 });
 
-describe('meeting ids in any case', () => {
-  it('a PUT with an uppercase id and a GET with the lowercase id hit the same blob, and the log carries lowercase', async () => {
+describe('meeting ids that are not canonical lowercase', () => {
+  it('a PUT with an uppercase id is 400 and writes nothing', async () => {
     const id = crypto.randomUUID();
-    const bytes = sealed(id, 'manifest', 1, 'upper');
+    const upper = id.toUpperCase();
+    const before = await h.prisma.change.count();
 
-    const res = await put(id.toUpperCase(), 'manifest', bytes, null);
-    expect(res.status).toBe(201);
+    const res = await put(upper, 'manifest', sealed(upper, 'manifest', 1, 'upper'), null);
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Invalid request' });
 
-    const got = await client.getMeetingBlob({
+    expect(await h.prisma.change.count()).toBe(before);
+    expect(await h.prisma.meeting.count({ where: { id: { in: [id, upper] } } })).toBe(0);
+    expect(await h.prisma.blob.count({ where: { scope: { in: [id, upper] } } })).toBe(0);
+  });
+
+  it('a GET or DELETE with an uppercase id is 400, even for a meeting that exists', async () => {
+    const id = crypto.randomUUID();
+    expect((await put(id, 'manifest', sealed(id, 'manifest', 1, 'lower'), null)).status).toBe(201);
+    const upper = id.toUpperCase();
+
+    const meeting = await client.getMeeting(owner.deviceToken, upper);
+    expect(meeting.status).toBe(400);
+    const blob = await client.getMeetingBlob({
       token: owner.deviceToken,
-      meetingId: id,
+      meetingId: upper,
       kind: 'manifest',
     });
-    expect(got.status).toBe(200);
-    expect(got.bytes.equals(bytes)).toBe(true);
-    const change = await h.prisma.change.findFirst({ where: { seq: res.body.seq } });
-    expect(change?.meetingId).toBe(id);
-    expect(await h.prisma.meeting.findUnique({ where: { id } })).not.toBeNull();
-    expect((await client.getMeeting(owner.deviceToken, id.toUpperCase())).body.id).toBe(id);
-    expect((await put(id, 'manifest', sealed(id, 'manifest', 2, 'lower'), 1)).status).toBe(200);
+    expect(blob.status).toBe(400);
+    const del = await client.deleteMeeting(owner.deviceToken, upper);
+    expect(del.status).toBe(400);
+    expect(del.body).toEqual({ error: 'Invalid request' });
+    expect((await h.prisma.meeting.findUnique({ where: { id } }))?.deletedAt).toBeNull();
   });
 });
 
@@ -337,7 +349,7 @@ describe('DELETE /api/v1/meetings/:id', () => {
     const lastSeq = (await h.prisma.change.findFirst({ orderBy: { seq: 'desc' } }))!.seq;
     const deletedAt = h.now.value;
 
-    const res = await client.deleteMeeting(owner.deviceToken, id.toUpperCase());
+    const res = await client.deleteMeeting(owner.deviceToken, id);
     expect(res.status).toBe(204);
 
     expect(await h.prisma.meeting.findUnique({ where: { id } })).toMatchObject({

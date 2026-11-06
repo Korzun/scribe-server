@@ -28,40 +28,34 @@ export function isMeetingKind(s: string): s is MeetingKind {
   return MEETING_KIND_SET.has(s);
 }
 
-// Canonical lowercase only: meeting and voice ids are scopes and kinds the
-// vault compares as strings, so `ABC…` and `abc…` must not name two things.
+// Canonical lowercase only, and never normalised: the client builds each
+// blob's AAD (`<libraryId>/<meetingId>/<kind>/<revision>`) from the id it
+// sends, and every other Mac rebuilds it from the id in the change log. A
+// vault that lowercased an uppercase id would accept a write that no other
+// Mac could ever open, so anything but the canonical form is refused.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-/** True only for the canonical lowercase form; ids from a request go through `normalizeUuid` first. */
-export function isUuid(s: string): boolean {
-  return UUID_RE.test(s);
-}
-
 /**
- * The one place an id from a request becomes the id the vault keys on: any
- * case is accepted (Swift's `UUID().uuidString` is uppercase) and lowercased,
- * so an uppercase `PUT` and a lowercase `GET` name the same blob and the change
- * log only ever carries lowercase. Anything that is not a UUID is `null`.
- * Every meeting route and `parseLibraryKind` use this.
+ * True only for a canonical lowercase `8-4-4-4-12` hex UUID. The one validator
+ * for every meeting id and voice id the vault is handed, on every route.
  */
-export function normalizeUuid(s: string): string | null {
-  const lower = s.toLowerCase();
-  return UUID_RE.test(lower) ? lower : null;
+export function isCanonicalUuid(s: string): boolean {
+  return UUID_RE.test(s);
 }
 
 export type LibraryKind = { kind: 'tag-list' } | { kind: 'voice'; voiceId: string };
 
 /**
  * Parses a library-wide kind: `tag-list`, or `voice/<uuid>` (one blob per
- * voiceprint, so two Macs learning different voices never collide), with the
- * voice id lowercased. Anything else, including any extra or empty segment,
- * is `null`.
+ * voiceprint, so two Macs learning different voices never collide), the voice
+ * id in canonical lowercase. Anything else, including an uppercase voice id or
+ * any extra or empty segment, is `null`.
  */
 export function parseLibraryKind(s: string): LibraryKind | null {
   if (s === 'tag-list') return { kind: 'tag-list' };
   if (!s.startsWith('voice/')) return null;
-  const voiceId = normalizeUuid(s.slice('voice/'.length));
-  return voiceId === null ? null : { kind: 'voice', voiceId };
+  const voiceId = s.slice('voice/'.length);
+  return isCanonicalUuid(voiceId) ? { kind: 'voice', voiceId } : null;
 }
 
 /** The kind string stored in `blobs` and the change log: `tag-list` or `voice/<lowercase uuid>`. */

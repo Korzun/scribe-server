@@ -22,8 +22,8 @@ let other: string;
 beforeAll(async () => {
   h = await createHarness();
   client = new VaultClient(h.app);
-  writeSetupCode(h.dataDir, 'code');
-  owner = await createOwner(client, { setupCode: 'code' });
+  writeSetupCode(h.dataDir, 'test-setup-code');
+  owner = await createOwner(client, { setupCode: 'test-setup-code' });
   other = (await enrol('Other Mac')).deviceToken;
 }, 60_000);
 afterAll(async () => {
@@ -115,6 +115,19 @@ describe('POST /api/v1/uploads', () => {
       expect(res.status, JSON.stringify(body)).toBe(400);
       expect(res.body).toEqual({ error: 'Invalid request' });
     }
+  });
+
+  it('an uppercase voice id or meeting id is 400 and begins nothing', async () => {
+    const before = await h.prisma.upload.count();
+    for (const body of [
+      { ...valid(), meetingId: null, kind: `voice/${crypto.randomUUID().toUpperCase()}` },
+      { ...valid(), meetingId: crypto.randomUUID().toUpperCase() },
+    ]) {
+      const res = await client.beginUpload(owner.deviceToken, body);
+      expect(res.status, JSON.stringify(body)).toBe(400);
+      expect(res.body).toEqual({ error: 'Invalid request' });
+    }
+    expect(await h.prisma.upload.count()).toBe(before);
   });
 
   it('a session token is refused for upload routes', async () => {
@@ -392,14 +405,14 @@ describe('a keys-lost reset', () => {
   beforeAll(async () => {
     r = await createHarness();
     rc = new VaultClient(r.app);
-    writeSetupCode(r.dataDir, 'code');
+    writeSetupCode(r.dataDir, 'test-setup-code');
   });
   afterAll(async () => {
     await r.close();
   });
 
   it('a session begun before a reset cannot complete after it (401, no blob)', async () => {
-    const first = await createOwner(rc, { setupCode: 'code' });
+    const first = await createOwner(rc, { setupCode: 'test-setup-code' });
     const meetingId = crypto.randomUUID();
     const bytes = Buffer.concat([Buffer.from('SCRB\x01', 'latin1'), crypto.randomBytes(1000)]);
     const begun = await rc.beginUpload(first.deviceToken, {
@@ -412,9 +425,11 @@ describe('a keys-lost reset', () => {
     const id = begun.body.uploadId!;
     expect((await rc.putPart(first.deviceToken, id, 0, bytes)).status).toBe(204);
 
-    expect((await rc.deleteLibrary({ setupCode: 'code', confirm: 'DELETE' })).status).toBe(204);
+    expect(
+      (await rc.deleteLibrary({ setupCode: 'test-setup-code', confirm: 'DELETE' })).status
+    ).toBe(204);
     expect((await r.prisma.setting.findUnique({ where: { key: 'reset_epoch' } }))?.value).toBe('1');
-    const second = await createOwner(rc, { setupCode: 'code' });
+    const second = await createOwner(rc, { setupCode: 'test-setup-code' });
 
     expect((await rc.completeUpload(first.deviceToken, id)).status).toBe(401);
     // Not even the new library's own device can finish the old session.

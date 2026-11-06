@@ -7,7 +7,8 @@ export type StatusRouterDeps = {
 };
 
 /**
- * `GET /api/v1/status` — the one unauthenticated route. It tells a client
+ * `GET /api/v1/status`, unauthenticated (like library creation, the salts and
+ * the keys-lost reset in routes/library.ts). It tells a client
  * whether this vault already holds a library (so the app knows whether to
  * offer setup or sign-in) and which version is running. Nothing about the
  * library's contents or owner is revealed.

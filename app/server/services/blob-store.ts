@@ -17,8 +17,11 @@ import { pipeline } from 'stream/promises';
  * Every write goes to a temp file in the destination directory and is then
  * renamed into place, so a crash leaves either the whole file or a stray temp
  * (never a short file under a real hash), and the rename never crosses a
- * filesystem. Writing the same bytes twice is harmless: same name, same
- * content. Nothing here logs.
+ * filesystem. After the rename the containing `<aa>/` directory is fsynced
+ * too, so the new name itself is on disk before the caller commits the row
+ * that points at it (and, for an upload, tells the Mac its audio is safe).
+ * Writing the same bytes twice is harmless: same name, same content. Nothing
+ * here logs.
  */
 export type BlobStore = {
   /** Stores `bytes`; idempotent for identical bytes. */
@@ -55,6 +58,26 @@ export class HashMismatchError extends Error {
 }
 
 const SHA256_RE = /^[0-9a-f]{64}$/;
+
+/**
+ * fsyncs a directory, so a rename into it survives a power cut. Exported for
+ * the tests only.
+ */
+export async function syncDir(dir: string): Promise<void> {
+  let handle: fs.promises.FileHandle | undefined;
+  try {
+    handle = await fs.promises.open(dir, 'r');
+    await handle.sync();
+  } catch (err) {
+    // Some platforms cannot open or fsync a directory at all (Windows answers
+    // EISDIR, some filesystems EINVAL); there the rename is as durable as it
+    // can be made, so only those two codes are ignored.
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== 'EINVAL' && code !== 'EISDIR') throw err;
+  } finally {
+    await handle?.close();
+  }
+}
 
 export function createBlobStore({ root }: { root: string }): BlobStore {
   // The only way a caller-supplied string becomes a path: anything but a
@@ -95,6 +118,7 @@ export function createBlobStore({ root }: { root: string }): BlobStore {
           await fs.promises.rm(temp, { force: true });
           throw err;
         }
+        await syncDir(path.dirname(dest));
       }
       return { sha256, size: bytes.length };
     },
@@ -120,6 +144,7 @@ export function createBlobStore({ root }: { root: string }): BlobStore {
         await fs.promises.rm(temp, { force: true });
         throw err;
       }
+      await syncDir(path.dirname(dest));
       return { sha256: expectedSha256, size };
     },
 

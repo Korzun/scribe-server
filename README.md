@@ -42,7 +42,7 @@ Add-on options (set in the **Configuration** tab):
 | `library_dir`      | string   | `scribe` | Sub-directory under `/media` where the encrypted blobs are stored.                                                                                                                                                                                                                                |
 | `public_url`       | string   | _(none)_ | Optional absolute origin this instance is reachable at (e.g. `https://scribe.example.com`). MCP turns on only when this is an **https** origin.                                                                                                                                                    |
 | `trust_proxy_hops` | int      | `0`      | Reverse-proxy hops to trust when resolving a client's real IP for rate limiting. Leave at `0` unless you sit behind a reverse proxy or **Cloudflare Tunnel**; set to `1` for a single such hop. Trusting a hop you don't actually run behind lets a client bypass the limiter, so don't set it higher than your real proxy count. |
-| `setup_code`       | password | _(none)_ | The key to creating the library, and to the keys-lost reset (see "Recovery"). Re-read live from the add-on's options, so changing it in Home Assistant and restarting the add-on rotates it. Leave it empty and the vault refuses to create a library.                                            |
+| `setup_code`       | password | _(none)_ | The key to creating the library, and to the keys-lost reset (see "Recovery"): it gates both from anyone who can reach the vault's address. Must be **at least 12 characters**; a shorter one is ignored as if unset. Re-read live from the add-on's options, so changing it in Home Assistant and restarting the add-on rotates it. Leave it empty and the vault refuses to create or reset a library. **Clear it (and restart) once the library exists**, and set it again only when a reset is needed. |
 | `log_level`        | list     | `info`   | Log verbosity: `debug`, `info`, `warn` or `error`.                                                                                                                                                                                                                                                |
 
 Example:
@@ -56,7 +56,7 @@ log_level: info
 ```
 
 Encrypted blobs are stored under the Home Assistant **`media`** share
-(`/media/<library_dir>`). Add-on state (the SQLite database, which holds the
+(`/media/<library_dir>/blobs`). Add-on state (the SQLite database, which holds the
 salts, verifiers, devices and change log) is persisted in the add-on **`data`**
 volume.
 
@@ -72,18 +72,22 @@ plaintext on the vault is only what it needs to operate with no key in hand:
 - per meeting: its id, which blob kinds are present, byte sizes, a SHA-256 of
   each ciphertext, revision numbers, which device uploaded, and the vault's own
   timestamps;
-- the change log, the job queue, devices, grants and tokens.
+- the change log, devices and tokens.
+
+Later releases will add a job queue and the grants of the AI assistants you
+connect; those will be stored in plaintext the same way.
 
 Not stored in the clear: titles, start and end times, durations, attendees,
 speaker names, tags, or text. The vault's own upload timestamps do reveal roughly
 when meetings happen; that is accepted.
 
-The one place the vault can read plaintext is the remote MCP endpoint. To answer
-an assistant you approved, it unwraps the Library Key with the assistant's token,
-decrypts only what the call needs in memory, answers, and drops the key. A live,
-compromised vault could read what passes through while a token is in use; that
-is the boundary. Disconnecting an assistant deletes its wraps and ends its access
-at once.
+This release never reads plaintext. A later release will add a remote MCP
+endpoint, and that will be the one place the vault can: to answer an assistant
+you approved, it will unwrap the Library Key with the assistant's token,
+decrypt only what the call needs in memory, answer, and drop the key. A live,
+compromised vault could then read what passes through while a token is in use;
+that will be the boundary. Disconnecting an assistant will delete its wraps and
+end its access at once.
 
 ## Usage
 
@@ -138,9 +142,15 @@ the only copy of the Secret Key outside the Macs that hold it.
 - **Lost the Secret Key:** nothing can be done. The library cannot be opened, by
   you or by anyone else. The admin page offers to delete the library and start
   over, and that is authorized by the `setup_code` option, read live at the moment
-  of the request: set or change `setup_code` in Home Assistant, restart the
-  add-on, type it on the admin page, and type `DELETE`. The same code then
-  protects re-creating the library.
+  of the request: set `setup_code` (at least 12 characters) in Home Assistant,
+  restart the add-on, type it on the admin page, and type `DELETE`. The same code
+  then protects re-creating the library.
+
+The setup code gates both creating the library and this reset from anyone who
+can reach the vault's address, so it must be at least 12 characters (a shorter
+one is ignored, as if unset) and should not stay configured: **once the library
+exists, clear `setup_code` in the add-on configuration and restart**, and set it
+again only when a reset is needed.
 
 ## Ports
 
@@ -218,7 +228,7 @@ variables, which override `options.json`:
 | Variable           | Default                    | Description                                                                                                                                              |
 | ------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DATA_DIR`         | `/data`                    | Path for `options.json` and the SQLite database.                                                                                                         |
-| `BLOBS_DIR`        | `/media/<library_dir>`     | Absolute path to the encrypted blob store.                                                                                                               |
+| `BLOBS_DIR`        | `/media/<library_dir>/blobs` | Absolute path to the encrypted blob store.                                                                                                               |
 | `PORT`             | `3000`                     | HTTP listen port.                                                                                                                                        |
 | `PUBLIC_URL`       | _(none)_                   | Same as the add-on's `public_url` option above. Optional; MCP turns on only for an https origin (or `http://localhost` for development).                  |
 | `TRUST_PROXY_HOPS` | `0`                        | Same as the add-on's `trust_proxy_hops` option above. Leave at `0` unless you run a proxy; trusting a hop you don't control lets a client bypass the limiter. |

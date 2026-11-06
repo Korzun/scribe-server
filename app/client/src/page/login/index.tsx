@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router';
 import { Card, EmptyState, Page } from '~/component';
 import { Button, TextInput } from '~/control';
 import { api } from '~/lib/api';
-import { fromBase64, toBase64, utf8 } from '~/lib/bytes';
+import { fromBase64, toBase64 } from '~/lib/bytes';
 import { formatSecretKey, parseSecretKey } from '~/lib/codes';
-import { deriveAccountKeys } from '~/lib/kdf';
+import { deriveAccountKeys, passwordBytes } from '~/lib/kdf';
 import { forgetSecretKey, recallSecretKey, rememberSecretKey } from '~/lib/secret-key-store';
 import { extractAccessToken } from '~/lib/token';
 import { useAuth } from '~/provider/auth';
@@ -73,7 +73,7 @@ export const LoginPage = () => {
     let authKey: Uint8Array;
     try {
       ({ authKey } = await deriveAccountKeys({
-        secret: utf8(password ?? ''),
+        secret: passwordBytes(password ?? ''),
         secretKey,
         salt: fromBase64(salts.body.passwordSalt),
       }));

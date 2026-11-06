@@ -6,9 +6,9 @@ import { z } from 'zod';
 
 import { deviceAuth } from '../middleware/device-auth';
 import {
+  isCanonicalUuid,
   isMeetingKind,
   libraryKindName,
-  normalizeUuid,
   parseLibraryKind,
 } from '../services/blob-kinds';
 import { LIBRARY_SCOPE } from '../services/blobs';
@@ -44,8 +44,7 @@ function target(meetingId: string | null, kind: string): { scope: string; kind: 
     const parsed = parseLibraryKind(kind);
     return parsed === null ? null : { scope: LIBRARY_SCOPE, kind: libraryKindName(parsed) };
   }
-  const id = normalizeUuid(meetingId);
-  return id !== null && isMeetingKind(kind) ? { scope: id, kind } : null;
+  return isCanonicalUuid(meetingId) && isMeetingKind(kind) ? { scope: meetingId, kind } : null;
 }
 
 /**

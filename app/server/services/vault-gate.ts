@@ -28,8 +28,12 @@
  * that live across a restart (upload sessions, spec §7) record it and compare
  * against it later, so it must mean the same library after a reboot.
  *
- * Lock order: the gate is always taken first, before any `keyed-lock` key.
- * In-process is enough, for the same reason as keyed-lock.ts: one process.
+ * Lock order: the gate is taken first, before any `keyed-lock` key, with one
+ * exception: upload completion (services/upload-session.ts) holds
+ * `upload:<id>` while it enters the gate to store the blob. That cannot
+ * deadlock, because nothing that holds the gate ever waits for an `upload:`
+ * lock (`expire` never takes one), so no cycle can form. In-process is
+ * enough, for the same reason as keyed-lock.ts: one process.
  */
 
 /** The request's credential predates a keys-lost reset; it belongs to a library that no longer exists. */

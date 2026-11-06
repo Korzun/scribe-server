@@ -16,8 +16,8 @@ let owner: Owner;
 beforeAll(async () => {
   h = await createHarness();
   client = new VaultClient(h.app);
-  writeSetupCode(h.dataDir, 'code');
-  owner = await createOwner(client, { setupCode: 'code' });
+  writeSetupCode(h.dataDir, 'test-setup-code');
+  owner = await createOwner(client, { setupCode: 'test-setup-code' });
 }, 60_000);
 afterAll(async () => {
   await h.close();
@@ -81,21 +81,20 @@ describe('PUT|GET /api/v1/library/blobs/{*kind}', () => {
     }
   });
 
-  it('an uppercase voice id names the same blob as the lowercase one, and the log carries lowercase', async () => {
+  it('an uppercase voice id is 400 on PUT and GET, and nothing is written', async () => {
     const voiceId = crypto.randomUUID();
-    const bytes = sealed(`voice/${voiceId}`, 1, 'voiceprint');
+    const upper = `voice/${voiceId.toUpperCase()}`;
+    const before = listing();
+    const changesBefore = await h.prisma.change.count();
 
-    const res = await put(`voice/${voiceId.toUpperCase()}`, bytes, null);
-    expect(res.status).toBe(201);
+    const res = await put(upper, sealed(upper, 1, 'voiceprint'), null);
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Invalid request' });
+    expect((await get(upper)).status).toBe(400);
+    expect((await get(`voice/${voiceId}`)).status).toBe(404);
 
-    const lower = await get(`voice/${voiceId}`);
-    expect(lower.status).toBe(200);
-    expect(lower.bytes.equals(bytes)).toBe(true);
-    const change = await h.prisma.change.findFirst({ where: { seq: res.body.seq } });
-    expect(change?.kind).toBe(`voice/${voiceId}`);
-    expect((await put(`voice/${voiceId}`, sealed(`voice/${voiceId}`, 2, 'v2'), 1)).status).toBe(
-      200
-    );
+    expect(listing()).toEqual(before);
+    expect(await h.prisma.change.count()).toBe(changesBefore);
   });
 
   it('voice/../x, voice/not-a-uuid, and an empty kind are 400 and nothing is written under blobsDir', async () => {
@@ -158,7 +157,12 @@ describe('DELETE /api/v1/library/blobs/voice/:voiceId', () => {
     await put(kind, two, 1);
     const lastSeq = (await h.prisma.change.findFirst({ orderBy: { seq: 'desc' } }))!.seq;
 
-    const res = await client.deleteVoice(owner.deviceToken, voiceId.toUpperCase());
+    const upper = await client.deleteVoice(owner.deviceToken, voiceId.toUpperCase());
+    expect(upper.status).toBe(400);
+    expect(upper.body).toEqual({ error: 'Invalid request' });
+    expect(await h.prisma.change.count({ where: { seq: { gt: lastSeq } } })).toBe(0);
+
+    const res = await client.deleteVoice(owner.deviceToken, voiceId);
     expect(res.status).toBe(204);
 
     const changes = await h.prisma.change.findMany({ where: { seq: { gt: lastSeq } } });

@@ -1,8 +1,9 @@
 /**
  * Human-transcribable secrets (design spec §3), the browser twin of the
  * server's `crypto/codes.ts`: the Secret Key and recovery codes. Both are
- * RFC 4648 base32 (uppercase, no padding), chosen so they can be read aloud or
- * copied from paper without ambiguous 0/O/1/I characters.
+ * RFC 4648 base32: the alphabet `A–Z2–7`, uppercase, no padding. It does
+ * contain `O` and `I`, and no input aliases are accepted (`0` is not read as
+ * `O`, nor `1` as `I`); parsing only uppercases and drops dashes and whitespace.
  * No logging lives here.
  */
 

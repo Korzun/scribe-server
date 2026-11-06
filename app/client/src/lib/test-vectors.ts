@@ -9,21 +9,27 @@ export type CryptoVectors = {
   iterations: number;
   inputs: {
     password: string;
+    unicodePasswordNfc: string;
+    unicodePasswordNfd: string;
+    unicodePasswordUtf8: string;
     secretKey: string;
     passwordSalt: string;
     recoverySalt: string;
     recoveryCode: string;
     libraryId: string;
     meetingId: string;
+    voiceId: string;
     libraryKey: string;
     nonce: string;
     plaintext: string;
   };
   formatted: { secretKey: string; recoveryCode: string };
   password: Record<'kPw' | 'kSk' | 'auk' | 'kek' | 'authKey', string>;
+  unicode: Record<'kPw' | 'kSk' | 'auk' | 'kek' | 'authKey', string>;
   recovery: Record<'kPw' | 'kSk' | 'auk' | 'kek' | 'authKey', string>;
   wraps: { passwordAad: string; password: string; recoveryAad: string; recovery: string };
   blob: { aad: string; sealed: string };
+  libraryBlob: { aad: string; sealed: string };
 };
 
 export const loadVectors = (): CryptoVectors =>

@@ -1,8 +1,8 @@
 /**
  * Account key derivation (design spec §3), the browser twin of the server's
  * `crypto/kdf.ts`, over WebCrypto. The same function serves the password and
- * the recovery code: `secret` is the UTF-8 bytes of the password, or the raw
- * 10 bytes of the recovery code. Mac, browser and server all derive the
+ * the recovery code: `secret` is `passwordBytes(password)` (the UTF-8 bytes of
+ * the NFC-normalised password), or the raw 10 bytes of the recovery code. Mac, browser and server all derive the
  * identical bytes; test/vectors/scribe-crypto-v1.json is the contract.
  *
  *   k_pw    = PBKDF2-HMAC-SHA256(secret, salt, 650000 iterations, 32 bytes)
@@ -26,6 +26,16 @@ const KEY_LENGTH = 32;
 const KEY_BITS = KEY_LENGTH * 8;
 const EMPTY_SALT = new Uint8Array(0);
 const encoder = new TextEncoder();
+
+/**
+ * The `secret` bytes of a password: the string normalised to Unicode NFC, then
+ * UTF-8 encoded, with nothing trimmed. Without the normalisation, "café" typed
+ * as a precomposed é on one keyboard and as e + combining acute on another
+ * would derive different keys. Every place the browser encodes a password goes
+ * through this. Recovery codes are bytes and never pass through here.
+ */
+export const passwordBytes = (password: string): Uint8Array =>
+  encoder.encode(password.normalize('NFC'));
 
 export type DeriveInput = { secret: Uint8Array; secretKey: Uint8Array; salt: Uint8Array };
 

@@ -6,7 +6,7 @@ import { Readable } from 'stream';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createBlobStore, HashMismatchError, type BlobStore } from './blob-store';
+import { createBlobStore, HashMismatchError, syncDir, type BlobStore } from './blob-store';
 
 vi.mock('../logger');
 
@@ -85,5 +85,64 @@ describe('createBlobStore', () => {
   it('refuses anything that is not a lowercase hex digest', async () => {
     await expect(store.exists('../../etc/passwd')).rejects.toThrow();
     expect(() => store.createReadStream('A'.repeat(64))).toThrow();
+  });
+});
+
+describe('directory fsync', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** Records renames, directory opens and fsyncs, in order. */
+  function spyOnDurability(): string[] {
+    const events: string[] = [];
+    const realRename = fs.promises.rename;
+    vi.spyOn(fs.promises, 'rename').mockImplementation(async (from, to) => {
+      await realRename(from, to);
+      events.push(`rename ${path.relative(root, String(to))}`);
+    });
+    const realOpen = fs.promises.open;
+    vi.spyOn(fs.promises, 'open').mockImplementation(async (file, flags, mode) => {
+      const handle = await realOpen(file, flags, mode);
+      const name = path.relative(root, String(file));
+      events.push(`open ${name}`);
+      const realSync = handle.sync.bind(handle);
+      handle.sync = async () => {
+        await realSync();
+        events.push(`fsync ${name}`);
+      };
+      return handle;
+    });
+    return events;
+  }
+
+  it('put fsyncs the <aa>/ directory after the rename', async () => {
+    const events = spyOnDurability();
+    const { sha256 } = await store.put(Buffer.from('durable'));
+    const shard = sha256.slice(0, 2);
+    expect(events).toEqual([`rename ${shard}/${sha256}`, `open ${shard}`, `fsync ${shard}`]);
+  });
+
+  it('putStream fsyncs the <aa>/ directory after the rename', async () => {
+    const bytes = Buffer.from('durable stream');
+    const events = spyOnDurability();
+    await store.putStream(Readable.from([bytes]), sha(bytes));
+    const shard = sha(bytes).slice(0, 2);
+    expect(events.filter((e) => !e.startsWith('open .tmp'))).toEqual([
+      `rename ${shard}/${sha(bytes)}`,
+      `open ${shard}`,
+      `fsync ${shard}`,
+    ]);
+  });
+
+  it('syncDir ignores EINVAL and EISDIR from a platform that cannot fsync a directory, and nothing else', async () => {
+    for (const code of ['EINVAL', 'EISDIR']) {
+      vi.spyOn(fs.promises, 'open').mockRejectedValueOnce(Object.assign(new Error(code), { code }));
+      await expect(syncDir(root)).resolves.toBeUndefined();
+    }
+    vi.spyOn(fs.promises, 'open').mockRejectedValueOnce(
+      Object.assign(new Error('EIO'), { code: 'EIO' })
+    );
+    await expect(syncDir(root)).rejects.toThrow('EIO');
   });
 });

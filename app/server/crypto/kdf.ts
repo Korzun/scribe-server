@@ -2,9 +2,10 @@ import { hkdfSync, pbkdf2Sync } from 'crypto';
 
 /**
  * Account key derivation (design spec §3). The same function serves the
- * password and the recovery code: `secret` is the UTF-8 bytes of the password,
- * or the raw 10 bytes of the recovery code. Mac, browser and server all derive
- * the identical bytes; test/vectors/scribe-crypto-v1.json is the contract.
+ * password and the recovery code: `secret` is `passwordBytes(password)` (the
+ * UTF-8 bytes of the NFC-normalised password), or the raw 10 bytes of the
+ * recovery code. Mac, browser and server all derive the identical bytes;
+ * test/vectors/scribe-crypto-v1.json is the contract.
  *
  *   k_pw    = PBKDF2-HMAC-SHA256(secret, salt, 650000 iterations, 32 bytes)
  *   k_sk    = HKDF-SHA256(ikm = secretKey, salt = salt, info = "scribe/v1/secret-key", 32)
@@ -16,8 +17,8 @@ import { hkdfSync, pbkdf2Sync } from 'crypto';
  * database cannot be brute-forced on the password alone. kek unwraps the
  * Library Key (stays on the client); authKey is what the server verifies
  * (argon2) and is domain-separated from kek so one cannot yield the other.
- * Note: for kek and authKey the HKDF salt is zero-length (not 32 zero bytes;
- * for HMAC-SHA256 the two are equivalent, but other APIs differ).
+ * Note: for kek and authKey the HKDF salt is zero-length, which for
+ * HMAC-SHA256 is equivalent to 32 zero bytes (RFC 5869's default salt).
  * No logging lives in crypto/.
  */
 
@@ -25,6 +26,18 @@ export const PBKDF2_ITERATIONS = 650_000;
 
 const KEY_LENGTH = 32;
 const EMPTY_SALT = Buffer.alloc(0);
+
+/**
+ * The `secret` bytes of a password: the string normalised to Unicode NFC, then
+ * UTF-8 encoded, with nothing trimmed. Without the normalisation, "café" typed
+ * as a precomposed é on one keyboard and as e + combining acute on another
+ * would derive different keys. Every place a password is encoded goes through
+ * this (Swift: `precomposedStringWithCanonicalMapping`). Recovery codes are
+ * bytes and never pass through here.
+ */
+export function passwordBytes(password: string): Buffer {
+  return Buffer.from(password.normalize('NFC'), 'utf8');
+}
 
 function hkdf(ikm: Buffer, salt: Buffer, info: string): Buffer {
   return Buffer.from(hkdfSync('sha256', ikm, salt, info, KEY_LENGTH));

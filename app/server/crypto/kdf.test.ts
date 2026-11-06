@@ -3,7 +3,7 @@ import * as path from 'path';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { deriveAccountKeys, deriveIntermediates, PBKDF2_ITERATIONS } from './kdf';
+import { deriveAccountKeys, deriveIntermediates, PBKDF2_ITERATIONS, passwordBytes } from './kdf';
 
 const secret = Buffer.from('correct horse battery staple');
 const salt = Buffer.alloc(16, 3);
@@ -32,6 +32,11 @@ describe('deriveAccountKeys', () => {
     expect(a.auk.length).toBe(32);
   });
 
+  it('passwordBytes NFC-normalises and does not trim', () => {
+    expect(passwordBytes('cafe\u0301').toString('hex')).toBe('636166c3a9');
+    expect(passwordBytes(' a ').toString('hex')).toBe('206120');
+  });
+
   it('matches the committed vectors', () => {
     const v = JSON.parse(
       fs.readFileSync(
@@ -47,11 +52,28 @@ describe('deriveAccountKeys', () => {
     };
     check(
       deriveIntermediates({
-        secret: Buffer.from(v.inputs.password, 'utf8'),
+        secret: passwordBytes(v.inputs.password),
         secretKey: hex(v.inputs.secretKey),
         salt: hex(v.inputs.passwordSalt),
       }),
       v.password
+    );
+    // Both spellings of "café" (NFD and NFC) derive the unicode block.
+    expect(v.inputs.unicodePasswordNfc).not.toBe(v.inputs.unicodePasswordNfd);
+    for (const spelling of [v.inputs.unicodePasswordNfd, v.inputs.unicodePasswordNfc]) {
+      expect(passwordBytes(spelling).toString('hex')).toBe(v.inputs.unicodePasswordUtf8);
+      check(
+        deriveIntermediates({
+          secret: passwordBytes(spelling),
+          secretKey: hex(v.inputs.secretKey),
+          salt: hex(v.inputs.passwordSalt),
+        }),
+        v.unicode
+      );
+    }
+    // Raw UTF-8 of the NFD spelling is different bytes: the normalisation matters.
+    expect(Buffer.from(v.inputs.unicodePasswordNfd, 'utf8').toString('hex')).not.toBe(
+      v.inputs.unicodePasswordUtf8
     );
     check(
       deriveIntermediates({

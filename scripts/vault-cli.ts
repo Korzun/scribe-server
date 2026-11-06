@@ -25,7 +25,7 @@ import * as path from 'path';
 import { parseArgs } from 'util';
 
 import { blobAad, open, seal } from '../app/server/crypto/seal';
-import { isMeetingKind, normalizeUuid } from '../app/server/services/blob-kinds';
+import { isCanonicalUuid, isMeetingKind } from '../app/server/services/blob-kinds';
 import {
   buildLibraryRequest,
   fetchTransport,
@@ -102,9 +102,10 @@ function fail(what: string, res: ClientResponse): never {
 }
 
 function meetingIdArg(raw: string | undefined): string {
-  const id = raw === undefined ? null : normalizeUuid(raw);
-  if (id === null) throw new CliError('a meeting id must be a UUID');
-  return id;
+  if (raw === undefined || !isCanonicalUuid(raw)) {
+    throw new CliError('a meeting id must be a canonical lowercase UUID');
+  }
+  return raw;
 }
 
 function kindArg(raw: string | undefined): string {

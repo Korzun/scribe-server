@@ -174,6 +174,32 @@ const RESET_TABLES: ReadonlyArray<(db: PrismaClient) => Prisma.PrismaPromise<unk
   (db) => db.library.deleteMany(),
 ];
 
+/** The `settings` key holding the reset epoch (services/vault-gate.ts); `settings` survives the reset. */
+export const RESET_EPOCH_KEY = 'reset_epoch';
+
+/**
+ * The persisted reset epoch, `0` when no reset has ever happened. Read at
+ * boot and handed to `initEpoch`. Anything but a non-negative integer is a
+ * corrupt row, and the vault refuses to start rather than guess.
+ */
+export async function loadResetEpoch(prisma: PrismaClient): Promise<number> {
+  const row = await prisma.setting.findUnique({ where: { key: RESET_EPOCH_KEY } });
+  if (row === null) return 0;
+  if (!/^\d{1,15}$/.test(row.value)) throw new Error('settings.reset_epoch is not an integer');
+  return Number(row.value);
+}
+
+/** Writes the reset epoch to `settings`; the reset does this before moving the in-memory value. */
+function persistResetEpoch(prisma: PrismaClient, next: number): Promise<void> {
+  return prisma.setting
+    .upsert({
+      where: { key: RESET_EPOCH_KEY },
+      create: { key: RESET_EPOCH_KEY, value: String(next) },
+      update: { value: String(next) },
+    })
+    .then(() => undefined);
+}
+
 /**
  * Deletes the library and everything in it (spec §9, "Lost the Secret Key").
  * Nothing the vault's cryptography knows can authorise this, since the owner
@@ -196,31 +222,6 @@ const RESET_TABLES: ReadonlyArray<(db: PrismaClient) => Prisma.PrismaPromise<unk
  * only: a Prisma error can echo its arguments, and the argument is the new
  * secret.
  */
-/** The `settings` key holding the reset epoch (services/vault-gate.ts); `settings` survives the reset. */
-export const RESET_EPOCH_KEY = 'reset_epoch';
-
-/**
- * The persisted reset epoch, `0` when no reset has ever happened. Read at
- * boot and handed to `initEpoch`. Anything but a non-negative integer is a
- * corrupt row, and the vault refuses to start rather than guess.
- */
-export async function loadResetEpoch(prisma: PrismaClient): Promise<number> {
-  const row = await prisma.setting.findUnique({ where: { key: RESET_EPOCH_KEY } });
-  if (row === null) return 0;
-  if (!/^\d{1,15}$/.test(row.value)) throw new Error('settings.reset_epoch is not an integer');
-  return Number(row.value);
-}
-
-function persistResetEpoch(prisma: PrismaClient, next: number): Promise<void> {
-  return prisma.setting
-    .upsert({
-      where: { key: RESET_EPOCH_KEY },
-      create: { key: RESET_EPOCH_KEY, value: String(next) },
-      update: { value: String(next) },
-    })
-    .then(() => undefined);
-}
-
 export function resetLibrary(
   prisma: PrismaClient,
   blobStore: BlobStore,

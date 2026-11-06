@@ -89,13 +89,28 @@ function setupCodeMatches(presented: string, expected: string): boolean {
 }
 
 /**
+ * The shortest setup code the vault honours. The code is all that stands
+ * between anyone who can reach the vault's address and creating the library
+ * or wiping it (the keys-lost reset), so a short one is treated as unset.
+ */
+export const MIN_SETUP_CODE_LENGTH = 12;
+
+/**
  * The live setup code check shared by library creation and the keys-lost
  * reset (spec §4, §9): read from options.json at the moment of the request,
- * never cached. `null` when it passes; otherwise the 403 body to send.
+ * never cached. A configured code shorter than `MIN_SETUP_CODE_LENGTH`
+ * characters counts as unset, and says so in the log (never the code itself).
+ * `null` when it passes; otherwise the 403 body to send.
  */
 function checkSetupCode(dataDir: string, presented: string): { error: string } | null {
   const expected = readSetupCode(dataDir);
   if (expected === null) return { error: 'Setup code required' };
+  if (Array.from(expected).length < MIN_SETUP_CODE_LENGTH) {
+    log.warn(
+      `setup_code is shorter than ${MIN_SETUP_CODE_LENGTH} characters and is ignored; set a longer one in the add-on configuration`
+    );
+    return { error: 'Setup code required' };
+  }
   if (!setupCodeMatches(presented, expected)) return { error: 'Wrong setup code' };
   return null;
 }
