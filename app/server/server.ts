@@ -5,11 +5,14 @@ import express, { NextFunction, Request, Response } from 'express';
 import { logger } from './logger';
 import { requestLog } from './middleware/request-log';
 import { requestTimeout } from './middleware/timeout';
+import { createChangesRouter } from './routes/changes';
 import { createDevicesRouter } from './routes/devices';
 import { createLibraryRouter } from './routes/library';
+import { createMeetingsRouter } from './routes/meetings';
 import { createRecoveryRouter } from './routes/recovery';
 import { createSessionRouter } from './routes/session';
 import { createStatusRouter } from './routes/status';
+import type { BlobStore } from './services/blob-store';
 import { AppConfig } from './types';
 import { APP_VERSION } from './utils/app-version';
 
@@ -20,6 +23,8 @@ export type CreateServerDeps = {
   prisma: PrismaClient;
   /** Signing secret for the owner's access tokens. */
   jwtSecret: Buffer;
+  /** Content-addressed storage for sealed blobs, rooted at `config.blobsDir`. */
+  blobStore: BlobStore;
   /** Clock in epoch milliseconds; tests inject a fake one, production uses `Date.now`. */
   now?: () => number;
 };
@@ -28,6 +33,7 @@ export function createServer({
   config,
   prisma,
   jwtSecret,
+  blobStore,
   now = Date.now,
 }: CreateServerDeps): express.Express {
   const server = express();
@@ -45,6 +51,8 @@ export function createServer({
   server.use('/api/v1', createDevicesRouter({ prisma, jwtSecret, config, now }));
   server.use('/api/v1', createSessionRouter({ prisma, jwtSecret, config, now }));
   server.use('/api/v1', createRecoveryRouter({ prisma, config, now }));
+  server.use('/api/v1', createMeetingsRouter({ prisma, jwtSecret, blobStore, now }));
+  server.use('/api/v1', createChangesRouter({ prisma, jwtSecret, now }));
 
   // Any other /api path is a JSON 404, so API clients never receive HTML.
   server.use('/api/{*splat}', (_req: Request, res: Response): void => {

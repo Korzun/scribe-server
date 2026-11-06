@@ -49,6 +49,40 @@ export type ClientBody = {
   ids?: string[];
   recoveryId?: string;
   wrap?: string;
+  revision?: number;
+  seq?: number;
+  sha256?: string;
+  size?: number;
+  currentRevision?: number;
+  blobs?: MeetingBlobEntry[];
+  meetings?: Array<{ id: string; createdAt: number; blobs: MeetingBlobEntry[] }>;
+  nextAfter?: string | null;
+  changes?: Array<{
+    seq: number;
+    meetingId: string | null;
+    kind: string;
+    revision: number;
+    sha256: string | null;
+    size: number | null;
+    deleted: boolean;
+    deviceId: string | null;
+    at: string;
+  }>;
+  nextSince?: number;
+  hasMore?: boolean;
+};
+
+export type MeetingBlobEntry = { kind: string; revision: number; sha256: string; size: number };
+
+/** A blob download: the raw bytes plus the headers the Mac acts on. */
+export type BlobResponse = {
+  status: number;
+  bytes: Buffer;
+  body: ClientBody;
+  etag: string | undefined;
+  sha256: string | undefined;
+  contentType: string | undefined;
+  contentLength: string | undefined;
 };
 
 export type ClientResponse = { status: number; body: ClientBody };
@@ -382,6 +416,106 @@ export class VaultClient {
       keyWrapAad(libraryId, 'password')
     );
     return { libraryKey, authKey: keys.authKey, libraryId };
+  }
+
+  /**
+   * PUT /meetings/:id/blobs/:kind as the Mac sends it: the (already sealed)
+   * bytes as `application/octet-stream`, their SHA-256 in `X-Scribe-Sha256`,
+   * and the precondition. `ifMatch: null` sends `If-None-Match: *` (a first
+   * write), a number sends `If-Match: <n>`, and leaving it out sends neither
+   * (for the 412 test). `sha256` overrides the computed header, so a test can
+   * claim one hash and send other bytes; `contentType` likewise.
+   */
+  async putMeetingBlob(input: {
+    token: string;
+    meetingId: string;
+    kind: string;
+    bytes: Buffer;
+    ifMatch?: number | null;
+    sha256?: string;
+    contentType?: string;
+  }): Promise<ClientResponse> {
+    const req = request(this.app)
+      .put(`/api/v1/meetings/${input.meetingId}/blobs/${input.kind}`)
+      .set('Authorization', `Bearer ${input.token}`)
+      .set('Content-Type', input.contentType ?? 'application/octet-stream')
+      .set(
+        'X-Scribe-Sha256',
+        input.sha256 ?? crypto.createHash('sha256').update(input.bytes).digest('hex')
+      );
+    if (input.ifMatch === null) req.set('If-None-Match', '*');
+    else if (input.ifMatch !== undefined) req.set('If-Match', String(input.ifMatch));
+    const res = await req.send(input.bytes);
+    return { status: res.status, body: res.body };
+  }
+
+  /** GET /meetings/:id/blobs/:kind; the bytes come back raw, never JSON-parsed. */
+  async getMeetingBlob(input: {
+    token: string;
+    meetingId: string;
+    kind: string;
+    ifNoneMatch?: string;
+  }): Promise<BlobResponse> {
+    const req = request(this.app)
+      .get(`/api/v1/meetings/${input.meetingId}/blobs/${input.kind}`)
+      .set('Authorization', `Bearer ${input.token}`)
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c: Buffer) => chunks.push(c));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      });
+    if (input.ifNoneMatch !== undefined) req.set('If-None-Match', input.ifNoneMatch);
+    const res = await req;
+    const bytes = Buffer.isBuffer(res.body) ? res.body : Buffer.alloc(0);
+    const isJson = String(res.headers['content-type'] ?? '').startsWith('application/json');
+    return {
+      status: res.status,
+      bytes,
+      body: isJson ? (JSON.parse(bytes.toString('utf8')) as ClientBody) : {},
+      etag: res.headers.etag,
+      sha256: res.headers['x-scribe-sha256'],
+      contentType: res.headers['content-type'],
+      contentLength: res.headers['content-length'],
+    };
+  }
+
+  /** GET /meetings, one page. */
+  async listMeetings(
+    token: string,
+    opts: { after?: string; limit?: number | string } = {}
+  ): Promise<ClientResponse> {
+    const query: Record<string, string> = {};
+    if (opts.after !== undefined) query.after = opts.after;
+    if (opts.limit !== undefined) query.limit = String(opts.limit);
+    const res = await request(this.app)
+      .get('/api/v1/meetings')
+      .query(query)
+      .set('Authorization', `Bearer ${token}`);
+    return { status: res.status, body: res.body };
+  }
+
+  async getMeeting(token: string, id: string): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .get(`/api/v1/meetings/${id}`)
+      .set('Authorization', `Bearer ${token}`);
+    return { status: res.status, body: res.body };
+  }
+
+  /** GET /changes; `since` and `limit` are sent verbatim when given, so tests can send garbage. */
+  async changes(
+    token: string,
+    since?: number | string,
+    limit?: number | string
+  ): Promise<ClientResponse> {
+    const query: Record<string, string> = {};
+    if (since !== undefined) query.since = String(since);
+    if (limit !== undefined) query.limit = String(limit);
+    const res = await request(this.app)
+      .get('/api/v1/changes')
+      .query(query)
+      .set('Authorization', `Bearer ${token}`);
+    return { status: res.status, body: res.body };
   }
 
   async createLibrary(input: unknown): Promise<ClientResponse> {
