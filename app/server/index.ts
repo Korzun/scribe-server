@@ -7,6 +7,7 @@ import { runMigrations } from './db/migrate';
 import { logger } from './logger';
 import { createServer } from './server';
 import { createBlobStore } from './services/blob-store';
+import { createGarbageCollector } from './services/gc';
 import { getOrCreateJwtSecret } from './services/token';
 import { startVault } from './startup';
 import { APP_VERSION } from './utils/app-version';
@@ -33,9 +34,10 @@ fs.mkdirSync(config.blobsDir, { recursive: true });
   const jwtSecret = await getOrCreateJwtSecret(prisma);
 
   const blobStore = createBlobStore({ root: config.blobsDir });
-  const server = createServer({ config, prisma, jwtSecret, blobStore });
+  const gc = createGarbageCollector({ prisma, blobStore, now: Date.now });
+  const server = createServer({ config, prisma, jwtSecret, blobStore, gc });
 
-  await startVault({ prisma, config, version: APP_VERSION, server });
+  await startVault({ prisma, config, version: APP_VERSION, server, gc });
 })().catch((err) => {
   console.error('Fatal startup error:', err);
   process.exit(1);

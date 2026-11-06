@@ -197,7 +197,7 @@ describe('PUT /api/v1/meetings/:id/blobs/:kind', () => {
       [id, 'notes'],
       [id, 'tag-list'],
       ['not-a-uuid', 'manifest'],
-      [id.toUpperCase(), 'manifest'],
+      [id.replace(/-/g, ''), 'manifest'],
     ] as const) {
       const res = await put(meetingId, kind, bytes, null);
       expect(res.status).toBe(400);
@@ -304,6 +304,149 @@ describe('PUT /api/v1/meetings/:id/blobs/:kind', () => {
     await put(id, 'inferences', last, 1);
     expect(fs.existsSync(fileFor(sha(shared)))).toBe(false);
     expect(fs.existsSync(fileFor(sha(last)))).toBe(true);
+  });
+});
+
+describe('meeting ids in any case', () => {
+  it('a PUT with an uppercase id and a GET with the lowercase id hit the same blob, and the log carries lowercase', async () => {
+    const id = crypto.randomUUID();
+    const bytes = sealed(id, 'manifest', 1, 'upper');
+
+    const res = await put(id.toUpperCase(), 'manifest', bytes, null);
+    expect(res.status).toBe(201);
+
+    const got = await client.getMeetingBlob({
+      token: owner.deviceToken,
+      meetingId: id,
+      kind: 'manifest',
+    });
+    expect(got.status).toBe(200);
+    expect(got.bytes.equals(bytes)).toBe(true);
+    const change = await h.prisma.change.findFirst({ where: { seq: res.body.seq } });
+    expect(change?.meetingId).toBe(id);
+    expect(await h.prisma.meeting.findUnique({ where: { id } })).not.toBeNull();
+    expect((await client.getMeeting(owner.deviceToken, id.toUpperCase())).body.id).toBe(id);
+    expect((await put(id, 'manifest', sealed(id, 'manifest', 2, 'lower'), 1)).status).toBe(200);
+  });
+});
+
+describe('DELETE /api/v1/meetings/:id', () => {
+  it('deleting a meeting tombstones it: one change row, PUT is 410, list omits it, delete again is 204', async () => {
+    const id = crypto.randomUUID();
+    await put(id, 'manifest', sealed(id, 'manifest', 1, 'x'), null);
+    const lastSeq = (await h.prisma.change.findFirst({ orderBy: { seq: 'desc' } }))!.seq;
+    const deletedAt = h.now.value;
+
+    const res = await client.deleteMeeting(owner.deviceToken, id.toUpperCase());
+    expect(res.status).toBe(204);
+
+    expect(await h.prisma.meeting.findUnique({ where: { id } })).toMatchObject({
+      deletedAt,
+      purgeAfter: deletedAt + 7 * 24 * 60 * 60 * 1000,
+    });
+    const changes = await h.prisma.change.findMany({ where: { seq: { gt: lastSeq } } });
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({
+      meetingId: id,
+      kind: 'meeting',
+      revision: 0,
+      sha256: null,
+      size: null,
+      deleted: true,
+      deviceId: owner.deviceId,
+      at: deletedAt,
+    });
+
+    const late = await put(id, 'manifest', sealed(id, 'manifest', 2, 'late'), 1);
+    expect(late.status).toBe(410);
+    expect(late.body).toEqual({ error: 'Meeting deleted' });
+    const read = await client.getMeetingBlob({
+      token: owner.deviceToken,
+      meetingId: id,
+      kind: 'manifest',
+    });
+    expect(read.status).toBe(410);
+    expect(read.body).toEqual({ error: 'Meeting deleted' });
+
+    const list = await client.listMeetings(owner.deviceToken, { limit: 500 });
+    expect(list.body.meetings!.map((m) => m.id)).not.toContain(id);
+    expect((await client.getMeeting(owner.deviceToken, id)).status).toBe(404);
+
+    // Idempotent: a second DELETE appends nothing and moves nothing.
+    h.now.value += 60_000;
+    try {
+      const again = await client.deleteMeeting(owner.deviceToken, id);
+      expect(again.status).toBe(204);
+      expect(await h.prisma.change.count({ where: { seq: { gt: lastSeq } } })).toBe(1);
+      expect((await h.prisma.meeting.findUnique({ where: { id } }))?.deletedAt).toBe(deletedAt);
+    } finally {
+      h.now.value -= 60_000;
+    }
+  });
+
+  it('a meeting that never existed is 404, a non-UUID id is 400, and no credential is 401', async () => {
+    const before = await h.prisma.change.count();
+    const missing = await client.deleteMeeting(owner.deviceToken, crypto.randomUUID());
+    expect(missing.status).toBe(404);
+    expect(missing.body).toEqual({ error: 'Not found' });
+    const bad = await client.deleteMeeting(owner.deviceToken, 'not-a-uuid');
+    expect(bad.status).toBe(400);
+    expect(bad.body).toEqual({ error: 'Invalid request' });
+    expect((await client.deleteMeeting('', crypto.randomUUID())).status).toBe(401);
+    expect(await h.prisma.change.count()).toBe(before);
+  });
+
+  it('a PUT racing a DELETE never leaves a live blob the change log does not describe', async () => {
+    const id = crypto.randomUUID();
+    await put(id, 'transcript', sealed(id, 'transcript', 1, 'base'), null);
+
+    // Hold the PUT between its tombstone check and its commit, and send the
+    // DELETE in that window: exactly the interleaving that could otherwise
+    // commit a blob *after* the tombstone.
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let reachedStore!: () => void;
+    const stored = new Promise<void>((resolve) => (reachedStore = resolve));
+    const real = h.blobStore.put.bind(h.blobStore);
+    const spy = vi.spyOn(h.blobStore, 'put').mockImplementation(async (bytes) => {
+      reachedStore();
+      await gate;
+      return real(bytes);
+    });
+    try {
+      const putting = put(id, 'transcript', sealed(id, 'transcript', 2, 'racing'), 1);
+      await stored;
+      const deleting = client.deleteMeeting(owner.deviceToken, id);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      release();
+      const [p, d] = await Promise.all([putting, deleting]);
+
+      expect(d.status).toBe(204);
+      expect([200, 410]).toContain(p.status);
+    } finally {
+      spy.mockRestore();
+    }
+
+    const tombstone = await h.prisma.change.findFirst({
+      where: { meetingId: id, kind: 'meeting', deleted: true },
+    });
+    expect(tombstone).not.toBeNull();
+    // Every blob still on the meeting was written, and logged, before the tombstone.
+    for (const blob of await h.prisma.blob.findMany({ where: { scope: id } })) {
+      const change = await h.prisma.change.findFirst({
+        where: { meetingId: id, kind: blob.kind, revision: blob.revision },
+      });
+      expect(change).not.toBeNull();
+      expect(change!.seq).toBeLessThan(tombstone!.seq);
+    }
+    expect(
+      await h.prisma.change.count({ where: { meetingId: id, seq: { gt: tombstone!.seq } } })
+    ).toBe(0);
+
+    // And the sweep purges whatever is left.
+    const purged = await client.purge(owner.deviceToken);
+    expect(purged.status).toBe(200);
+    expect(await h.prisma.blob.count({ where: { scope: id } })).toBe(0);
   });
 });
 

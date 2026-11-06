@@ -8,11 +8,13 @@ import { requestTimeout } from './middleware/timeout';
 import { createChangesRouter } from './routes/changes';
 import { createDevicesRouter } from './routes/devices';
 import { createLibraryRouter } from './routes/library';
+import { createLibraryBlobsRouter } from './routes/library-blobs';
 import { createMeetingsRouter } from './routes/meetings';
 import { createRecoveryRouter } from './routes/recovery';
 import { createSessionRouter } from './routes/session';
 import { createStatusRouter } from './routes/status';
 import type { BlobStore } from './services/blob-store';
+import type { GarbageCollector } from './services/gc';
 import { AppConfig } from './types';
 import { APP_VERSION } from './utils/app-version';
 
@@ -25,6 +27,8 @@ export type CreateServerDeps = {
   jwtSecret: Buffer;
   /** Content-addressed storage for sealed blobs, rooted at `config.blobsDir`. */
   blobStore: BlobStore;
+  /** The collector `POST /library/purge` runs (the same one `startVault` runs hourly). */
+  gc: GarbageCollector;
   /** Clock in epoch milliseconds; tests inject a fake one, production uses `Date.now`. */
   now?: () => number;
 };
@@ -34,6 +38,7 @@ export function createServer({
   prisma,
   jwtSecret,
   blobStore,
+  gc,
   now = Date.now,
 }: CreateServerDeps): express.Express {
   const server = express();
@@ -47,7 +52,8 @@ export function createServer({
 
   server.use('/api/v1/status', createStatusRouter({ prisma, version: APP_VERSION }));
 
-  server.use('/api/v1', createLibraryRouter({ prisma, jwtSecret, config, now }));
+  server.use('/api/v1', createLibraryRouter({ prisma, jwtSecret, config, blobStore, gc, now }));
+  server.use('/api/v1', createLibraryBlobsRouter({ prisma, jwtSecret, blobStore, now }));
   server.use('/api/v1', createDevicesRouter({ prisma, jwtSecret, config, now }));
   server.use('/api/v1', createSessionRouter({ prisma, jwtSecret, config, now }));
   server.use('/api/v1', createRecoveryRouter({ prisma, config, now }));

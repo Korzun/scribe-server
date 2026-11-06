@@ -4,9 +4,10 @@ import type { Readable } from 'stream';
 import type { PrismaClient } from '@prisma/client';
 
 import { logger } from '../logger';
+import { MEETING_KINDS } from './blob-kinds';
 import { HashMismatchError, type BlobStore } from './blob-store';
 import { appendChange } from './change-log';
-import { withKeyLock } from './keyed-lock';
+import { withKeyLock, withKeyLocks } from './keyed-lock';
 
 const log = logger('Blobs');
 
@@ -39,6 +40,12 @@ export type PutResult =
 /** Serialises everything that adds or drops a reference to one file. */
 const fileKey = (sha256: string) => `file:${sha256}`;
 
+/** Serialises the read-check-write of one blob (and anything that must not interleave with it). */
+const kindKey = (scope: string, kind: string) => `${scope}/${kind}`;
+
+/** How long a deleted meeting's blobs stay on disk before the collector may drop them (spec §6). */
+export const DELETE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
  * Writes one blob revision (spec §6, "Writes and conflicts").
  *
@@ -65,8 +72,11 @@ export function putBlob(deps: BlobsDeps, input: PutBlobInput): Promise<PutResult
   const { prisma, blobStore, now } = deps;
   const { scope, kind, sha256, ifMatch, deviceId } = input;
 
-  return withKeyLock(`${scope}/${kind}`, async (): Promise<PutResult> => {
+  return withKeyLock(kindKey(scope, kind), async (): Promise<PutResult> => {
     const isMeeting = scope !== LIBRARY_SCOPE;
+    // Checked once, here, under the kind lock: `tombstoneMeeting` takes this
+    // same lock (for every kind) to write the tombstone, so the answer cannot
+    // change between this read and the commit below.
     if (isMeeting) {
       const meeting = await prisma.meeting.findUnique({ where: { id: scope } });
       if (meeting !== null && meeting.deletedAt !== null) {
@@ -142,10 +152,103 @@ export function putBlob(deps: BlobsDeps, input: PutBlobInput): Promise<PutResult
   });
 }
 
+export type TombstoneOutcome = 'deleted' | 'already' | 'not_found';
+
+/**
+ * Deletes a meeting (spec §6): sets `deletedAt = now` and `purgeAfter = now +
+ * 7 days`, and appends exactly one change `{ kind: 'meeting', revision: 0,
+ * deleted: true }` in the same transaction. Every Mac that pages past that
+ * row drops its cache and local audio. The blobs stay until the collector
+ * purges them after the grace (or sooner, when the owner empties the bin);
+ * the `meetings` row and the log are never removed, so a late write from a
+ * Mac that missed the deletion is a 410, never a resurrection.
+ *
+ * Idempotent: an already-deleted meeting is `'already'` and nothing moves. A
+ * meeting the vault never saw is `'not_found'` (nothing to tombstone).
+ *
+ * Racing `putBlob`: the tombstone is written while holding the kind lock of
+ * EVERY meeting kind of this meeting (in sorted order, see `withKeyLocks`).
+ * The alternative, re-checking `deletedAt` in `putBlob` just before its
+ * transaction, still leaves a window between that read and the commit. With
+ * the locks, a PUT either finishes first (its blob and change row come before
+ * the tombstone, and the sweep purges the blob) or starts after and sees the
+ * tombstone (410). It can never commit a blob after the tombstone that the log
+ * does not describe. Task 10's upload completion goes through `putBlob`, so it
+ * inherits this.
+ */
+export function tombstoneMeeting(
+  deps: BlobsDeps,
+  meetingId: string,
+  deviceId: string | null
+): Promise<TombstoneOutcome> {
+  const { prisma, now } = deps;
+  const keys = MEETING_KINDS.map((kind) => kindKey(meetingId, kind));
+  return withKeyLocks(keys, async (): Promise<TombstoneOutcome> => {
+    const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+    if (meeting === null) return 'not_found';
+    if (meeting.deletedAt !== null) return 'already';
+    const at = now();
+    await prisma.$transaction([
+      prisma.meeting.update({
+        where: { id: meetingId },
+        data: { deletedAt: at, purgeAfter: at + DELETE_GRACE_MS },
+      }),
+      appendChange(prisma, {
+        meetingId,
+        kind: 'meeting',
+        revision: 0,
+        sha256: null,
+        size: null,
+        deleted: true,
+        deviceId,
+        at,
+      }),
+    ]);
+    log.info(`Meeting deleted: ${meetingId}`);
+    return 'deleted';
+  });
+}
+
+/**
+ * Deletes one blob outright (a voiceprint the owner removed): drops its row
+ * and appends `{ revision: <current>, deleted: true }` in one transaction,
+ * then releases its file. Under the kind lock, like a write, so it cannot
+ * interleave with a `putBlob` of the same blob. Returns the revision deleted,
+ * or `null` when there was no such blob.
+ */
+export function deleteBlob(
+  deps: BlobsDeps,
+  scope: string,
+  kind: string,
+  deviceId: string | null
+): Promise<number | null> {
+  const { prisma, now } = deps;
+  return withKeyLock(kindKey(scope, kind), async () => {
+    const current = await prisma.blob.findUnique({ where: { scope_kind: { scope, kind } } });
+    if (current === null) return null;
+    await prisma.$transaction([
+      prisma.blob.delete({ where: { scope_kind: { scope, kind } } }),
+      appendChange(prisma, {
+        meetingId: scope === LIBRARY_SCOPE ? null : scope,
+        kind,
+        revision: current.revision,
+        sha256: null,
+        size: null,
+        deleted: true,
+        deviceId,
+        at: now(),
+      }),
+    ]);
+    await releaseBlobFile(deps, current.sha256);
+    log.info(`Blob deleted: ${scope}/${kind} at revision ${current.revision}`);
+    return current.revision;
+  });
+}
+
 /**
  * Removes the file for `sha256` unless some `blobs` row still references it.
  * Files are shared by content, so this is the only safe way to drop one; the
- * garbage collector (Task 9) uses it too.
+ * garbage collector uses it too.
  */
 export function releaseBlobFile(
   deps: Pick<BlobsDeps, 'prisma' | 'blobStore'>,

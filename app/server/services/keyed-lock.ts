@@ -31,3 +31,17 @@ export function withKeyLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
   });
   return run;
 }
+
+/**
+ * Holds every lock in `keys` at once, taken in sorted order and released
+ * together after `fn`. A fixed order is what makes two multi-key holders
+ * unable to deadlock each other. Everyone else holds at most one of these
+ * keys and then, at most, a `file:` lock, whose holders never wait for any
+ * other key, so no cycle can form.
+ */
+export function withKeyLocks<T>(keys: readonly string[], fn: () => Promise<T>): Promise<T> {
+  const sorted = [...new Set(keys)].sort();
+  const take = (i: number): Promise<T> =>
+    i === sorted.length ? fn() : withKeyLock(sorted[i]!, () => take(i + 1));
+  return take(0);
+}

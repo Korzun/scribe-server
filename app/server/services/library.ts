@@ -1,8 +1,9 @@
-import type { Library, PrismaClient } from '@prisma/client';
+import type { Library, Prisma, PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 import { logger } from '../logger';
 import { generateId } from '../utils/id';
+import type { BlobStore } from './blob-store';
 import { newDeviceToken } from './device';
 
 const log = logger('Library');
@@ -119,17 +120,67 @@ export async function verifyOwner(prisma: PrismaClient, authKey: Buffer): Promis
 }
 
 /**
- * The storage figures `GET /library` reports (spec §4). A placeholder until
- * blobs exist: Task 9 replaces this body with real counts and nothing else in
- * the route changes.
+ * The storage figures `GET /library` reports (spec §4), from the database
+ * alone. `blobBytes` sums `Blob.size` (so two rows sharing one file count it
+ * twice: it is what the library holds, not what the disk holds).
+ * `deletedMeetingCount` is the bin: meetings tombstoned but not yet purged,
+ * where "purged" means the collector has dropped every blob row of the
+ * tombstone (services/gc.ts). A purged tombstone is in neither count.
  */
-export function libraryStorage(_prisma: PrismaClient): Promise<{
+export async function libraryStorage(prisma: PrismaClient): Promise<{
   blobBytes: number;
   blobCount: number;
   meetingCount: number;
   deletedMeetingCount: number;
 }> {
-  return Promise.resolve({ blobBytes: 0, blobCount: 0, meetingCount: 0, deletedMeetingCount: 0 });
+  const [sum, blobCount, meetingCount, bin] = await Promise.all([
+    prisma.blob.aggregate({ _sum: { size: true } }),
+    prisma.blob.count(),
+    prisma.meeting.count({ where: { deletedAt: null } }),
+    prisma.$queryRaw<Array<{ n: bigint | number }>>`
+      SELECT COUNT(*) AS n FROM meetings m
+      WHERE m.deleted_at IS NOT NULL
+        AND EXISTS (SELECT 1 FROM blobs b WHERE b.scope = m.id)`,
+  ]);
+  return {
+    blobBytes: sum._sum.size ?? 0,
+    blobCount,
+    meetingCount,
+    deletedMeetingCount: Number(bin[0]?.n ?? 0),
+  };
+}
+
+/**
+ * Every table the keys-lost reset empties, children first. `settings` is the
+ * one table left alone (the signing secret and other instance state are not
+ * the library's). A new table that holds library data is one more line here
+ * (Task 10 adds `uploads`).
+ */
+const RESET_TABLES: ReadonlyArray<(db: PrismaClient) => Prisma.PrismaPromise<unknown>> = [
+  (db) => db.change.deleteMany(),
+  (db) => db.blob.deleteMany(),
+  (db) => db.meeting.deleteMany(),
+  (db) => db.refreshToken.deleteMany(),
+  (db) => db.device.deleteMany(),
+  (db) => db.recoveryCode.deleteMany(),
+  (db) => db.library.deleteMany(),
+];
+
+/**
+ * Deletes the library and everything in it (spec §9, "Lost the Secret Key").
+ * Nothing the vault's cryptography knows can authorise this, since the owner
+ * has lost it; the route authorises it with the live setup code instead.
+ *
+ * Every row goes in one transaction, so a failure leaves the library whole;
+ * only then are the files removed (a crash in between leaves unreferenced
+ * ciphertext under a key nobody holds, which the next reset clears).
+ * Afterwards the vault is as fresh as a new
+ * install: status says no library and setup can run again.
+ */
+export async function resetLibrary(prisma: PrismaClient, blobStore: BlobStore): Promise<void> {
+  await prisma.$transaction(RESET_TABLES.map((deleteAll) => deleteAll(prisma)));
+  await blobStore.clear();
+  log.info('Library deleted (keys-lost reset)');
 }
 
 /** How many recovery codes are still spendable. */

@@ -35,6 +35,12 @@ export type BlobStore = {
   exists(sha256: string): Promise<boolean>;
   /** Sum of the sizes of every stored file (temps excluded). */
   totalBytes(): Promise<number>;
+  /**
+   * Removes everything under the root (files, shards, temps) and leaves the
+   * root itself, empty. Only the keys-lost reset (spec §9) calls this. The
+   * root is emptied rather than removed because it may be a mount point.
+   */
+  clear(): Promise<void>;
 };
 
 /** The streamed bytes did not hash to what the caller declared. Carries both hashes, which are safe to log. */
@@ -123,6 +129,13 @@ export function createBlobStore({ root }: { root: string }): BlobStore {
 
     async remove(sha256) {
       await fs.promises.rm(fileFor(sha256), { force: true });
+    },
+
+    async clear() {
+      await fs.promises.mkdir(root, { recursive: true });
+      for (const name of await fs.promises.readdir(root)) {
+        await fs.promises.rm(path.join(root, name), { recursive: true, force: true });
+      }
     },
 
     async totalBytes() {
