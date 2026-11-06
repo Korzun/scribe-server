@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DeviceList, Page, SecurityCard, StorageCard } from '~/component';
 import { Button } from '~/control';
@@ -28,8 +28,22 @@ export const DashboardPage = () => {
   // Taken when the devices load, so relative times stay stable between renders.
   const [now, setNow] = useState(Date.now);
 
+  // Only the latest request per resource may write state, and nothing writes
+  // after unmount.
+  const libraryRequest = useRef(0);
+  const devicesRequest = useRef(0);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const refreshLibrary = useCallback(async () => {
+    const request = ++libraryRequest.current;
     const result = await loadLibrary();
+    if (!mounted.current || request !== libraryRequest.current) return;
     if (result.ok) {
       setLibrary({ value: result.body, failed: false });
     } else {
@@ -39,7 +53,9 @@ export const DashboardPage = () => {
   }, [toast]);
 
   const refreshDevices = useCallback(async () => {
+    const request = ++devicesRequest.current;
     const result = await loadDevices();
+    if (!mounted.current || request !== devicesRequest.current) return;
     if (result.ok) {
       setNow(Date.now());
       setDevices({ value: result.body.devices, failed: false });
@@ -49,10 +65,14 @@ export const DashboardPage = () => {
     }
   }, [toast]);
 
+  const refreshAll = useCallback(
+    () => Promise.all([refreshLibrary(), refreshDevices()]).then(() => undefined),
+    [refreshLibrary, refreshDevices]
+  );
+
   useEffect(() => {
-    void refreshLibrary();
-    void refreshDevices();
-  }, [refreshLibrary, refreshDevices]);
+    void refreshAll();
+  }, [refreshAll]);
 
   const rename = async (id: string, name: string) => {
     const result = await renameDevice(id, name);
@@ -61,23 +81,21 @@ export const DashboardPage = () => {
         result.status === 409 ? 'That Mac has been revoked' : "Couldn't rename the Mac",
         'error'
       );
-      await refreshDevices();
-      return false;
     }
-    await refreshDevices();
-    return true;
+    await refreshAll();
+    return result.ok;
   };
 
   const revoke = async (id: string) => {
     const result = await revokeDevice(id);
     if (!result.ok) toast("Couldn't revoke the Mac", 'error');
-    await refreshDevices();
+    await refreshAll();
   };
 
   const purge = async () => {
     const result = await purgeDeleted();
     if (!result.ok) toast("Couldn't empty the deleted meetings", 'error');
-    await refreshLibrary();
+    await refreshAll();
   };
 
   return (

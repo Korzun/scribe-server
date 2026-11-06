@@ -131,6 +131,7 @@ describe('DashboardPage', () => {
 
     await waitFor(() => expect(calls('/api/v1/devices/d1', 'DELETE')).toHaveLength(1));
     await waitFor(() => expect(calls('/api/v1/devices', 'GET')).toHaveLength(2));
+    await waitFor(() => expect(calls('/api/v1/library', 'GET')).toHaveLength(2));
   });
 
   it('a revoked device cannot be renamed', async () => {
@@ -161,6 +162,7 @@ describe('DashboardPage', () => {
       name: 'Desk Mac',
     });
     await waitFor(() => expect(calls('/api/v1/devices', 'GET')).toHaveLength(2));
+    await waitFor(() => expect(calls('/api/v1/library', 'GET')).toHaveLength(2));
   });
 
   it('Escape cancels a rename without a request', async () => {
@@ -200,6 +202,7 @@ describe('DashboardPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Empty now' }));
 
     await waitFor(() => expect(calls('/api/v1/library/purge', 'POST')).toHaveLength(1));
+    await waitFor(() => expect(calls('/api/v1/devices', 'GET')).toHaveLength(2));
     await waitFor(() => expect(calls('/api/v1/library', 'GET')).toHaveLength(2));
   });
 
@@ -211,5 +214,68 @@ describe('DashboardPage', () => {
     expect(await screen.findByText("Couldn't load storage")).toBeInTheDocument();
     // Devices still render.
     expect(await screen.findByText('Work Mac')).toBeInTheDocument();
+  });
+
+  it('a rename that races a revoke (409) toasts, closes the input and does not resend', async () => {
+    routes['/api/v1/devices/d1'] = () => json(409, { error: 'Device revoked' });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByText('Work Mac'));
+    // After the failed PATCH the refetch reports the Mac as revoked.
+    routes['/api/v1/devices'] = () =>
+      json(200, {
+        devices: [{ ...devices()[0], revokedAt: NOW }, devices()[1]],
+      });
+    const input = screen.getByRole('textbox');
+    await user.clear(input);
+    await user.type(input, 'Desk Mac{Enter}');
+
+    expect(await screen.findByText('That Mac has been revoked')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('textbox')).not.toBeInTheDocument());
+    expect(calls('/api/v1/devices/d1', 'PATCH')).toHaveLength(1);
+  });
+
+  it('toasts when a rename, revoke or purge fails', async () => {
+    routes['/api/v1/devices/d1'] = (init) =>
+      init?.method === 'PATCH' ? json(500, { error: 'x' }) : json(500, { error: 'x' });
+    routes['/api/v1/library/purge'] = () => json(500, { error: 'x' });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByText('Work Mac'));
+    await user.type(screen.getByRole('textbox'), 'z{Enter}');
+    expect(await screen.findByText("Couldn't rename the Mac")).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    await user.click(screen.getByRole('button', { name: 'Revoke Work Mac' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Revoke' }));
+    expect(await screen.findByText("Couldn't revoke the Mac")).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Empty now' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Empty now' }));
+    expect(await screen.findByText("Couldn't empty the deleted meetings")).toBeInTheDocument();
+  });
+
+  it('a slow earlier devices response cannot overwrite a newer one', async () => {
+    let releaseFirst: (r: Response) => void = () => undefined;
+    let n = 0;
+    routes['/api/v1/devices'] = () => {
+      n += 1;
+      if (n === 1) return new Promise<Response>((resolve) => (releaseFirst = resolve));
+      return json(200, { devices: [{ ...devices()[0], name: 'Fresh Mac' }] });
+    };
+    routes['/api/v1/library/purge'] = () => json(200, { purgedMeetings: 2, removedFiles: 5 });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Empty now' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Empty now' }));
+    expect(await screen.findByText('Fresh Mac')).toBeInTheDocument();
+
+    releaseFirst(json(200, { devices: devices() }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.getByText('Fresh Mac')).toBeInTheDocument();
+    expect(screen.queryByText('Old Mac')).not.toBeInTheDocument();
   });
 });
