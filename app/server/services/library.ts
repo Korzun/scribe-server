@@ -189,34 +189,63 @@ const RESET_TABLES: ReadonlyArray<(db: PrismaClient) => Prisma.PrismaPromise<unk
  * access token of the old library is accepted by the next one (refresh
  * tokens went with the tables). Then the files are removed (unreadable
  * ciphertext under a key nobody holds; a crash before this leaves them for
- * the next reset). A failed rotation is still followed by the file removal,
+ * the next reset). Last, the epoch moves: persisted to `settings` first,
+ * then in memory (see `withVaultReset`). A failed rotation is still followed by the file removal,
  * and reported as `'rotation_failed'`: the library is gone, but the caller
  * must not claim success. Its log line names the error's class and code
  * only: a Prisma error can echo its arguments, and the argument is the new
  * secret.
  */
+/** The `settings` key holding the reset epoch (services/vault-gate.ts); `settings` survives the reset. */
+export const RESET_EPOCH_KEY = 'reset_epoch';
+
+/**
+ * The persisted reset epoch, `0` when no reset has ever happened. Read at
+ * boot and handed to `initEpoch`. Anything but a non-negative integer is a
+ * corrupt row, and the vault refuses to start rather than guess.
+ */
+export async function loadResetEpoch(prisma: PrismaClient): Promise<number> {
+  const row = await prisma.setting.findUnique({ where: { key: RESET_EPOCH_KEY } });
+  if (row === null) return 0;
+  if (!/^\d{1,15}$/.test(row.value)) throw new Error('settings.reset_epoch is not an integer');
+  return Number(row.value);
+}
+
+function persistResetEpoch(prisma: PrismaClient, next: number): Promise<void> {
+  return prisma.setting
+    .upsert({
+      where: { key: RESET_EPOCH_KEY },
+      create: { key: RESET_EPOCH_KEY, value: String(next) },
+      update: { value: String(next) },
+    })
+    .then(() => undefined);
+}
+
 export function resetLibrary(
   prisma: PrismaClient,
   blobStore: BlobStore,
   jwtSecret: JwtSecret
 ): Promise<'ok' | 'rotation_failed'> {
-  return withVaultReset(async () => {
-    await prisma.$transaction(RESET_TABLES.map((deleteAll) => deleteAll(prisma)));
-    let outcome: 'ok' | 'rotation_failed' = 'ok';
-    try {
-      await jwtSecret.rotate();
-    } catch (err) {
-      const name = err instanceof Error ? err.name : typeof err;
-      const code = (err as { code?: unknown } | null)?.code;
-      log.error(
-        `Library deleted, but rotating the signing secret failed: ${name}${typeof code === 'string' ? ` (${code})` : ''}`
-      );
-      outcome = 'rotation_failed';
-    }
-    await blobStore.clear();
-    log.info('Library deleted (keys-lost reset)');
-    return outcome;
-  });
+  return withVaultReset(
+    async () => {
+      await prisma.$transaction(RESET_TABLES.map((deleteAll) => deleteAll(prisma)));
+      let outcome: 'ok' | 'rotation_failed' = 'ok';
+      try {
+        await jwtSecret.rotate();
+      } catch (err) {
+        const name = err instanceof Error ? err.name : typeof err;
+        const code = (err as { code?: unknown } | null)?.code;
+        log.error(
+          `Library deleted, but rotating the signing secret failed: ${name}${typeof code === 'string' ? ` (${code})` : ''}`
+        );
+        outcome = 'rotation_failed';
+      }
+      await blobStore.clear();
+      log.info('Library deleted (keys-lost reset)');
+      return outcome;
+    },
+    (next) => persistResetEpoch(prisma, next)
+  );
 }
 
 /** How many recovery codes are still spendable. */

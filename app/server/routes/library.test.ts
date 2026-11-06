@@ -451,13 +451,14 @@ describe('DELETE /api/v1/library (keys lost)', () => {
     ]) {
       expect(await count).toBe(0);
     }
-    // `settings` survives the reset, except the signing secret, which is rotated.
+    // `settings` survives the reset, except the signing secret, which is
+    // rotated, and the reset epoch, which advances (and persists).
     const settingsAfter = await h.prisma.setting.findMany({ orderBy: { key: 'asc' } });
-    expect(settingsAfter.map((r) => r.key)).toEqual(settingsBefore.map((r) => r.key));
+    const moved = (r: { key: string }) => r.key === 'jwt_secret' || r.key === 'reset_epoch';
     const isSecret = (r: { key: string }) => r.key === 'jwt_secret';
-    expect(settingsAfter.filter((r) => !isSecret(r))).toEqual(
-      settingsBefore.filter((r) => !isSecret(r))
-    );
+    expect(settingsAfter.filter((r) => !moved(r))).toEqual(settingsBefore.filter((r) => !moved(r)));
+    expect(settingsBefore.find((r) => r.key === 'reset_epoch')).toBeUndefined();
+    expect(settingsAfter.find((r) => r.key === 'reset_epoch')?.value).toBe('1');
     expect(settingsAfter.find(isSecret)?.value).not.toBe(settingsBefore.find(isSecret)?.value);
     expect(fs.existsSync(h.blobsDir)).toBe(true);
     expect(fs.readdirSync(h.blobsDir)).toEqual([]);

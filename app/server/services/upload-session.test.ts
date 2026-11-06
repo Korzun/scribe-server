@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createHarness, type Harness } from '../test-support/harness';
 import { getBlob } from './blobs';
+import { loadResetEpoch, RESET_EPOCH_KEY, resetLibrary } from './library';
 import {
   createUploadSessions,
   DEFAULT_PART_SIZE,
@@ -16,7 +17,7 @@ import {
   UPLOAD_TTL_MS,
   type UploadSessions,
 } from './upload-session';
-import { currentEpoch, VaultResetError, withVaultReset } from './vault-gate';
+import { currentEpoch, initEpoch, VaultResetError, withVaultReset } from './vault-gate';
 
 vi.mock('../logger');
 
@@ -258,21 +259,62 @@ describe('complete', () => {
     expect(await getBlob(h, scope, 'audio-mic')).toBeNull();
   });
 
-  it('sessions survive a restart: a fresh process (epoch counted from zero again) can still complete them', async () => {
-    const bytes = sealedBytes(100);
-    const scope = meeting();
-    const { uploadId } = await begin(bytes, { scope });
-    await write(uploadId, 0, bytes);
-    // A row written by an earlier process carries that process's epoch.
-    await h.prisma.upload.update({ where: { id: uploadId }, data: { epoch: currentEpoch() + 5 } });
-
-    const restarted = createUploadSessions({
+  /** What index.ts does at boot: a fresh gate from the persisted epoch, fresh sessions. */
+  async function restart(): Promise<UploadSessions> {
+    initEpoch(0); // a new process starts from nothing in memory...
+    initEpoch(await loadResetEpoch(h.prisma)); // ...and reads the stored epoch
+    return createUploadSessions({
       prisma: h.prisma,
       dataDir: h.dataDir,
       blobStore: h.blobStore,
       now: () => h.now.value,
     });
+  }
+
+  it('a session begun at epoch N survives a restart and can still complete', async () => {
+    // Two earlier resets: the stored epoch is 2, not the 0 a new process starts from.
+    await resetLibrary(h.prisma, h.blobStore, h.jwtSecret);
+    await resetLibrary(h.prisma, h.blobStore, h.jwtSecret);
+    expect(currentEpoch()).toBe(2);
+    const bytes = sealedBytes(100);
+    const scope = meeting();
+    const { uploadId } = await begin(bytes, { scope });
+    await write(uploadId, 0, bytes);
+
+    const restarted = await restart();
+    expect(currentEpoch()).toBe(2);
     expect((await restarted.complete(uploadId)).ok).toBe(true);
+    expect((await getBlob(h, scope, 'audio-mic'))?.sha256).toBe(sha(bytes));
+  });
+
+  it('a reset persists the advanced epoch; a session from before it is refused after a restart', async () => {
+    const bytes = sealedBytes(MiB + 10);
+    const scope = meeting();
+    const { uploadId } = await begin(bytes, { scope });
+    await write(uploadId, 0, part(bytes, 0));
+    const before = await loadResetEpoch(h.prisma);
+
+    // A reset whose wipe this session's row escaped (the gate's own epoch
+    // check is what must catch it), persisted like the real one.
+    await withVaultReset(
+      async () => undefined,
+      async (next) => {
+        expect(currentEpoch()).toBe(before); // stored first, memory after
+        await h.prisma.setting.upsert({
+          where: { key: RESET_EPOCH_KEY },
+          create: { key: RESET_EPOCH_KEY, value: String(next) },
+          update: { value: String(next) },
+        });
+      }
+    );
+    expect(await loadResetEpoch(h.prisma)).toBe(before + 1);
+
+    const restarted = await restart();
+    await expect(
+      restarted.writePart(uploadId, 1, Readable.from([part(bytes, 1)]))
+    ).rejects.toBeInstanceOf(VaultResetError);
+    await expect(restarted.complete(uploadId)).rejects.toBeInstanceOf(VaultResetError);
+    expect(await getBlob(h, scope, 'audio-mic')).toBeNull();
   });
 });
 

@@ -132,11 +132,9 @@ const isEnoent = (err: unknown) => (err as NodeJS.ErrnoException).code === 'ENOE
  * in, and `begin` inserts under the gate, so no row of an old library can
  * land after the reset wiped the table. `writePart` and `complete` refuse a
  * session whose epoch has moved, and `complete` hands that epoch to
- * `putBlob`, whose gate re-checks it atomically with the write. Epochs are
- * counted in memory and start again at zero in every process, while sessions
- * outlive a restart; so the first call in a process rebases every row to the
- * current epoch. That is sound because every row present then belongs to the
- * current library (the reset deletes them all, in one transaction).
+ * `putBlob`, whose gate re-checks it atomically with the write. The epoch
+ * is persisted (`settings.reset_epoch`, see vault-gate.ts), so a session
+ * outlives a restart with an epoch that still means the same library.
  *
  * Locks: `complete` and `abort` serialise per session on `upload:<id>`.
  * `complete` takes the gate (inside `putBlob`) while holding it, which is the
@@ -161,22 +159,7 @@ export function createUploadSessions({
   const dirFor = (id: string) => path.join(root, id);
   const blobsDeps: BlobsDeps = { prisma, blobStore, now };
 
-  let rebased: Promise<unknown> | undefined;
-  function ready(): Promise<unknown> {
-    if (rebased === undefined) {
-      const epoch = currentEpoch();
-      rebased = prisma.upload
-        .updateMany({ where: { epoch: { not: epoch } }, data: { epoch } })
-        .catch((err: unknown) => {
-          rebased = undefined;
-          throw err;
-        });
-    }
-    return rebased;
-  }
-
   async function live(id: string): Promise<Upload | null> {
-    await ready();
     const row = await prisma.upload.findUnique({ where: { id } });
     if (row === null || row.completedAt !== null || row.expiresAt <= now()) return null;
     return row;
@@ -241,7 +224,6 @@ export function createUploadSessions({
         throw new InvalidUploadError('size');
       }
       if (!SHA256_RE.test(input.sha256)) throw new InvalidUploadError('sha256');
-      await ready();
 
       const id = generateId();
       const createdAt = now();
@@ -335,7 +317,6 @@ export function createUploadSessions({
     },
 
     async complete(id) {
-      await ready();
       return withKeyLock(`upload:${id}`, async (): Promise<CompleteResult> => {
         // Read before the row: if a reset lands after this, either the row is
         // already gone, or `putBlob`'s gate refuses this epoch.
@@ -396,7 +377,6 @@ export function createUploadSessions({
     },
 
     async abort(id) {
-      await ready();
       return withKeyLock(`upload:${id}`, async () => {
         const row = await live(id);
         if (row === null) return false;
@@ -412,7 +392,6 @@ export function createUploadSessions({
     // re-entrant), nor wait for an `upload:` lock (see above). It only drops
     // rows and directories.
     async expire(at) {
-      await ready();
       const due = await prisma.upload.findMany({
         where: { expiresAt: { lte: at } },
         select: { id: true, completedAt: true },

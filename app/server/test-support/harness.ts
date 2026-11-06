@@ -10,8 +10,10 @@ import { runMigrations } from '../db/migrate';
 import { createServer } from '../server';
 import { createBlobStore, type BlobStore } from '../services/blob-store';
 import { createGarbageCollector, type GarbageCollector } from '../services/gc';
+import { loadResetEpoch } from '../services/library';
 import { createJwtSecret, type JwtSecret } from '../services/token';
 import { createUploadSessions, type UploadSessions } from '../services/upload-session';
+import { initEpoch } from '../services/vault-gate';
 import type { AppConfig } from '../types';
 
 /** The secret the harness's signing secret starts as. */
@@ -65,6 +67,8 @@ export async function createHarness(): Promise<Harness> {
     data: { key: 'jwt_secret', value: HARNESS_JWT_SECRET.toString('hex') },
   });
   const jwtSecret = await createJwtSecret(prisma);
+  // As index.ts does at boot: the gate starts from the persisted epoch.
+  initEpoch(await loadResetEpoch(prisma));
 
   const now = { value: 1_700_000_000_000 };
   const blobStore = createBlobStore({ root: blobsDir });
