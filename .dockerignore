@@ -1,0 +1,8 @@
+# Keep host-built artefacts out of the image build context: node_modules holds
+# host-platform native binaries, and the Dockerfile builds dist/ itself.
+**/node_modules
+**/dist
+dev-data
+dev-media
+.claude
+.superpowers
