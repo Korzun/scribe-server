@@ -72,3 +72,53 @@ model Device {
   @@index([libraryId])
   @@map("devices")
 }
+
+// A meeting the vault has seen (spec §6). Created the first time any of its
+// blobs is written; `deletedAt` tombstones it and `purgeAfter` is when the
+// collector may drop its blobs (both set by deletion, Task 9). The row itself
+// outlives the purge, so a late write from a Mac that missed the tombstone
+// still answers 410 rather than quietly resurrecting the meeting.
+model Meeting {
+  id         String @id
+  createdAt  Float  @map("created_at")
+  deletedAt  Float? @map("deleted_at")
+  purgeAfter Float? @map("purge_after")
+
+  @@map("meetings")
+}
+
+// The current revision of one blob (spec §6). `scope` is a meeting UUID or the
+// literal 'library'; it is deliberately not a foreign key, since 'library'
+// names no row. The ciphertext lives at `<blobsDir>/<aa>/<sha256>`, and two
+// rows share one file when their bytes are identical, hence the index on
+// `sha256` for the "does anything still reference this file" check.
+model Blob {
+  scope     String
+  kind      String
+  revision  Int
+  sha256    String
+  size      Int
+  deviceId  String? @map("device_id")
+  updatedAt Float   @map("updated_at")
+
+  @@id([scope, kind])
+  @@index([sha256])
+  @@map("blobs")
+}
+
+// The library-wide change log (spec §6): one row per write and per tombstone.
+// A Mac syncs by paging `seq > last_seq`; `seq` is the primary key, so that
+// range scan is the table's own order and needs no further index.
+model Change {
+  seq       Int     @id @default(autoincrement())
+  meetingId String? @map("meeting_id")
+  kind      String
+  revision  Int
+  sha256    String?
+  size      Int?
+  deleted   Boolean
+  deviceId  String? @map("device_id")
+  at        Float
+
+  @@map("changes")
+}

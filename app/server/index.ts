@@ -6,6 +6,7 @@ import { createPrismaClient } from './db/client';
 import { runMigrations } from './db/migrate';
 import { logger } from './logger';
 import { createServer } from './server';
+import { createBlobStore } from './services/blob-store';
 import { getOrCreateJwtSecret } from './services/token';
 import { startVault } from './startup';
 import { APP_VERSION } from './utils/app-version';
@@ -31,7 +32,8 @@ fs.mkdirSync(config.blobsDir, { recursive: true });
   // Persisted in the settings table so a signed-in browser survives a restart.
   const jwtSecret = await getOrCreateJwtSecret(prisma);
 
-  const server = createServer({ config, prisma, jwtSecret });
+  const blobStore = createBlobStore({ root: config.blobsDir });
+  const server = createServer({ config, prisma, jwtSecret, blobStore });
 
   await startVault({ prisma, config, version: APP_VERSION, server });
 })().catch((err) => {
