@@ -1,3 +1,5 @@
+import * as path from 'path';
+
 import type { PrismaClient } from '@prisma/client';
 import cookieParser from 'cookie-parser';
 import express, { NextFunction, Request, Response } from 'express';
@@ -21,6 +23,7 @@ import type { UploadSessions } from './services/upload-session';
 import { VaultResetError } from './services/vault-gate';
 import { AppConfig } from './types';
 import { APP_VERSION } from './utils/app-version';
+import { CLIENT_DIST_DIR, clientIndexExists, clientNotBuiltMessage } from './utils/client-dist';
 
 const log = logger('Server');
 
@@ -37,6 +40,8 @@ export type CreateServerDeps = {
   uploads: UploadSessions;
   /** Clock in epoch milliseconds; tests inject a fake one, production uses `Date.now`. */
   now?: () => number;
+  /** The built admin client to serve; defaults to `app/client/dist`. Tests point it at a temp dir. */
+  clientDist?: string;
 };
 
 export function createServer({
@@ -47,6 +52,7 @@ export function createServer({
   gc,
   uploads,
   now = Date.now,
+  clientDist = CLIENT_DIST_DIR,
 }: CreateServerDeps): express.Express {
   const server = express();
 
@@ -72,6 +78,20 @@ export function createServer({
   server.use('/api/{*splat}', (_req: Request, res: Response): void => {
     res.status(404).json({ error: 'Not found' });
   });
+
+  // The admin SPA. Mounted after the /api 404 above, so API paths never fall
+  // through to HTML. Every other GET serves the shell (client-side routes like
+  // /login), or a plain-text 503 when the client has not been built, which is
+  // a missing build step rather than a server bug.
+  const serveSpa = (_req: Request, res: Response): void => {
+    if (!clientIndexExists(clientDist)) {
+      res.status(503).type('text/plain').send(clientNotBuiltMessage(clientDist));
+      return;
+    }
+    res.sendFile(path.join(clientDist, 'index.html'), { dotfiles: 'allow' });
+  };
+  server.use(express.static(clientDist, { index: false }));
+  server.get('/{*splat}', serveSpa);
 
   server.use((err: unknown, _req: Request, res: Response, next: NextFunction): void => {
     if (err instanceof SyntaxError && 'body' in err) {
