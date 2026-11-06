@@ -1,5 +1,5 @@
 import cx from 'classnames';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { Button, TextInput } from '~/control';
 import type { Device } from '~/lib/dashboard';
@@ -21,6 +21,9 @@ export const DeviceRow = ({ device, now, onRename, onRevoke }: DeviceRowProps) =
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(device.name);
   const revoked = device.revokedAt !== null;
+  const saving = useRef(false);
+  // A row revoked while its input was open stops being editable.
+  const isEditing = editing && !revoked;
 
   const startEditing = () => {
     if (revoked) return;
@@ -29,19 +32,25 @@ export const DeviceRow = ({ device, now, onRename, onRevoke }: DeviceRowProps) =
   };
 
   const save = async () => {
+    if (saving.current || revoked) return;
     const name = draft.trim();
     if (name === '' || name === device.name) {
       setEditing(false);
       return;
     }
-    if (await onRename(device.id, name)) setEditing(false);
+    saving.current = true;
+    try {
+      if (await onRename(device.id, name)) setEditing(false);
+    } finally {
+      saving.current = false;
+    }
   };
 
   return (
     <CardRow>
       <div className={cx(styles.row, { [styles.revoked]: revoked })}>
         <div className={styles.info}>
-          {editing ? (
+          {isEditing ? (
             <div className={styles.edit}>
               <TextInput
                 name={`device-name-${device.id}`}
