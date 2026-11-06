@@ -22,7 +22,7 @@ is admin only.
 2. Click the ⋮ menu (top-right) → **Repositories**, and add this repository URL:
 
    ```
-   https://github.com/Korzun/scribe-homeassistant
+   https://github.com/Korzun/scribe-server
    ```
 
    [![Add repository to your Home Assistant instance][repo-badge]][repo-add]
@@ -283,11 +283,11 @@ values; nothing else changes.
 No license has been declared for this project yet. All rights reserved by the
 author until a license is added.
 
-[releases]: https://github.com/Korzun/scribe-homeassistant/releases
-[release-shield]: https://img.shields.io/github/v/release/Korzun/scribe-homeassistant?style=flat-square
+[releases]: https://github.com/Korzun/scribe-server/releases
+[release-shield]: https://img.shields.io/github/v/release/Korzun/scribe-server?style=flat-square
 [stage-shield]: https://img.shields.io/badge/project%20stage-development-orange.svg?style=flat-square
 [license-shield]: https://img.shields.io/badge/license-all%20rights%20reserved-red.svg?style=flat-square
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg?style=flat-square
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg?style=flat-square
-[repo-add]: https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FKorzun%2Fscribe-homeassistant
+[repo-add]: https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FKorzun%2Fscribe-server
 [repo-badge]: https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg
