@@ -52,7 +52,7 @@ describe('putBlob', () => {
     });
     const got = await getBlob(deps, id, 'audio-mic');
     expect(got).toMatchObject({ revision: 1, sha256: sha(bytes), size: bytes.length });
-    expect((await readAll(got!.stream)).equals(bytes)).toBe(true);
+    expect((await readAll(await got!.openStream())).equals(bytes)).toBe(true);
   });
 
   it('a stream whose hash differs rejects and leaves no row', async () => {
@@ -113,6 +113,25 @@ describe('putBlob', () => {
     expect(res).toEqual({ ok: false, reason: 'gone' });
     expect(await h.blobStore.exists(sha(bytes))).toBe(false);
     expect(await h.prisma.change.count()).toBe(0);
+  });
+
+  it('openStream rejects when the file is missing, and opens nothing until called', async () => {
+    const bytes = blob('orphan');
+    await putBlob(deps, {
+      scope: 'library',
+      kind: 'tag-list',
+      bytes,
+      sha256: sha(bytes),
+      size: bytes.length,
+      ifMatch: null,
+      deviceId: null,
+    });
+    const spy = vi.spyOn(h.blobStore, 'createReadStream');
+    const got = await getBlob(deps, 'library', 'tag-list');
+    expect(spy).not.toHaveBeenCalled();
+
+    await h.blobStore.remove(sha(bytes));
+    await expect(got!.openStream()).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it('getBlob is null for an absent blob', async () => {

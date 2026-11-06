@@ -1,5 +1,8 @@
 import * as crypto from 'crypto';
+import { once } from 'events';
 import * as fs from 'fs';
+import * as http from 'http';
+import type { AddressInfo } from 'net';
 import * as path from 'path';
 
 import request from 'supertest';
@@ -352,6 +355,76 @@ describe('GET /api/v1/meetings/:id/blobs/:kind', () => {
     });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Not found' });
+  });
+
+  it('a row whose file is gone answers 304 to a matching If-None-Match and 404 otherwise', async () => {
+    const id = crypto.randomUUID();
+    const bytes = sealed(id, 'summary', 1, 'orphan');
+    await put(id, 'summary', bytes, null);
+    fs.rmSync(fileFor(sha(bytes)));
+
+    // The 304 never needs the file, so it must neither open it nor take the process down.
+    const cached = await client.getMeetingBlob({
+      token: owner.deviceToken,
+      meetingId: id,
+      kind: 'summary',
+      ifNoneMatch: '"1"',
+    });
+    expect(cached.status).toBe(304);
+
+    // The file is opened before any header goes out, so a missing one is a clean 404.
+    const res = await client.getMeetingBlob({
+      token: owner.deviceToken,
+      meetingId: id,
+      kind: 'summary',
+    });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Not found' });
+  });
+
+  it('an aborted download closes the source stream', async () => {
+    const id = crypto.randomUUID();
+    // Large enough that the socket applies backpressure long before the end.
+    await put(id, 'audio-mic', sealed(id, 'audio-mic', 1, 'x'.repeat(8 * 1024 * 1024)), null);
+
+    const opened: fs.ReadStream[] = [];
+    const real = h.blobStore.createReadStream;
+    const spy = vi.spyOn(h.blobStore, 'createReadStream').mockImplementation((sha256) => {
+      const stream = real(sha256);
+      opened.push(stream);
+      return stream;
+    });
+    const server = h.app.listen(0);
+    try {
+      await once(server, 'listening');
+      const { port } = server.address() as AddressInfo;
+      await new Promise<void>((resolve, reject) => {
+        const req = http.get(
+          {
+            port,
+            path: `/api/v1/meetings/${id}/blobs/audio-mic`,
+            headers: { Authorization: `Bearer ${owner.deviceToken}` },
+          },
+          (res) => {
+            expect(res.statusCode).toBe(200);
+            res.once('data', () => {
+              req.destroy();
+              resolve();
+            });
+          }
+        );
+        req.on('error', (err) => {
+          if (!req.destroyed) reject(err);
+        });
+      });
+
+      expect(opened).toHaveLength(1);
+      await vi.waitFor(() => expect(opened[0]!.destroyed).toBe(true), { timeout: 2000 });
+    } finally {
+      spy.mockRestore();
+      server.closeAllConnections();
+      server.close();
+    }
   });
 });
 

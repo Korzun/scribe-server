@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { pipeline, type Readable } from 'stream';
 
 import type { PrismaClient } from '@prisma/client';
 import express, { Router, type NextFunction, type Request, type Response } from 'express';
@@ -174,20 +175,42 @@ export function createMeetingsRouter({
       res.set('ETag', etag);
       res.set('X-Scribe-Sha256', blob.sha256);
       if (req.get('If-None-Match') === etag) {
-        blob.stream.destroy();
+        // Answered from the row alone: the file is never opened.
         res.status(304).end();
         return;
       }
+
+      // Open before any status goes out, so a row whose file is missing (an
+      // orphan, or an overwrite that unlinked it after the row was read) is a
+      // clean 404 instead of a connection reset after the headers.
+      let stream: Readable;
+      try {
+        stream = await blob.openStream();
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code ?? 'error';
+        log.error(`Blob file missing: ${id}/${kind} revision ${blob.revision}: ${code}`);
+        res.removeHeader('ETag');
+        res.removeHeader('X-Scribe-Sha256');
+        res.status(404).json({ error: 'Not found' });
+        return;
+      }
+
       res.status(200);
       res.set('Content-Type', 'application/octet-stream');
       res.set('Content-Length', String(blob.size));
-      // A read error mid-body (a missing or truncated file) cannot become a
-      // status any more; cutting the connection makes the Mac see a short read.
-      blob.stream.on('error', (err) => {
-        log.error(`Blob read failed: ${id}/${kind}: ${err.message}`);
-        res.destroy();
+      // `pipeline`, not `pipe`: when the Mac goes away mid-download (sleep, a
+      // network change) it destroys the file stream too, so its descriptor is
+      // closed rather than left open for good. A read error after the headers
+      // can no longer become a status; pipeline cuts the connection, and the
+      // Mac sees a short read that fails its hash check.
+      pipeline(stream, res, (err) => {
+        if (err === undefined || err === null) return;
+        if ((err as NodeJS.ErrnoException).code === 'ERR_STREAM_PREMATURE_CLOSE') {
+          log.debug(`Blob download aborted by the client: ${id}/${kind}`);
+        } else {
+          log.error(`Blob read failed: ${id}/${kind}: ${err.message}`);
+        }
       });
-      blob.stream.pipe(res);
     } catch (err) {
       next(err);
     }
