@@ -1,0 +1,28 @@
+name: "Scribe"
+description: "Encrypted vault for Scribe meeting libraries — sync target, MCP endpoint"
+version: "0.1.0"
+slug: "scribe"
+image: "ghcr.io/korzun/scribe-{arch}"
+init: false
+arch:
+  - aarch64
+  - amd64
+ports:
+  3000/tcp: 3000
+ports_description:
+  3000/tcp: "Vault — device API, admin page, MCP"
+map:
+  - media:rw
+  - data:rw
+options:
+  library_dir: scribe
+  public_url: ""
+  trust_proxy_hops: 0
+  setup_code: ""
+  log_level: info
+schema:
+  library_dir: str
+  public_url: "str?"
+  trust_proxy_hops: int
+  setup_code: "password?"
+  log_level: "list(debug|info|warn|error)"
