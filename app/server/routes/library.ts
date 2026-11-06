@@ -7,8 +7,17 @@ import { z } from 'zod';
 import { readSetupCode } from '../config';
 import { isSealed, SEAL_HEADER_LENGTH, TAG_LENGTH } from '../crypto/seal';
 import { logger } from '../logger';
+import { ownerAuth } from '../middleware/owner-auth';
 import { createIpRateLimit } from '../middleware/rate-limit';
-import { createLibrary, getLibrary, LibraryExistsError } from '../services/library';
+import {
+  changePassword,
+  countUnusedRecoveryCodes,
+  createLibrary,
+  getLibrary,
+  LibraryExistsError,
+  libraryStorage,
+  replaceRecoveryCodes,
+} from '../services/library';
 import type { AppConfig } from '../types';
 import { base64Bytes } from '../utils/base64-schema';
 
@@ -16,6 +25,7 @@ const log = logger('LibraryRoute');
 
 export type LibraryRouterDeps = {
   prisma: PrismaClient;
+  jwtSecret: Buffer;
   config: AppConfig;
   now: () => number;
 };
@@ -25,8 +35,24 @@ export type LibraryRouterDeps = {
  * wrong-length or unsealed blob here would be stored and only discovered at
  * the first unlock, when it is too late to re-run setup.
  */
-const WRAP_LENGTH = SEAL_HEADER_LENGTH + 32 + TAG_LENGTH;
-const sealedWrap = () => base64Bytes(WRAP_LENGTH, WRAP_LENGTH).refine(isSealed, 'not sealed');
+export const WRAP_LENGTH = SEAL_HEADER_LENGTH + 32 + TAG_LENGTH;
+export const sealedWrap = () =>
+  base64Bytes(WRAP_LENGTH, WRAP_LENGTH).refine(isSealed, 'not sealed');
+
+/** The new password material the client derived and rewrapped; shared with the recovery route. */
+export const newPasswordFields = {
+  newPasswordSalt: base64Bytes(16, 16),
+  newAuthKey: base64Bytes(32, 32),
+  newPasswordWrap: sealedWrap(),
+};
+
+const changePasswordBody = z.object({ authKey: base64Bytes(32, 32), ...newPasswordFields });
+
+const replaceCodesBody = z.object({
+  authKey: base64Bytes(32, 32),
+  recoverySalt: base64Bytes(16, 16),
+  codes: z.array(z.object({ authKey: base64Bytes(32, 32), wrap: sealedWrap() })).length(10),
+});
 
 const createLibraryBody = z.object({
   setupCode: z.string().max(256),
@@ -59,8 +85,9 @@ function setupCodeMatches(presented: string, expected: string): boolean {
  * Nothing here logs a request body, token, key, salt, verifier or setup code:
  * outcomes are logged with ids only.
  */
-export function createLibraryRouter({ prisma, config, now }: LibraryRouterDeps): Router {
+export function createLibraryRouter({ prisma, jwtSecret, config, now }: LibraryRouterDeps): Router {
   const router = Router();
+  const auth = ownerAuth({ prisma, jwtSecret, now });
   const saltsLimit = createIpRateLimit({
     max: 60,
     windowMs: 60_000,
@@ -141,6 +168,70 @@ export function createLibraryRouter({ prisma, config, now }: LibraryRouterDeps):
         }
         throw err;
       }
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // The owner's view of the library: only public material (salts, the sealed
+  // wrap) and counts. The wrap is useless without the password and Secret Key.
+  router.get('/library', auth, async (_req, res, next) => {
+    try {
+      const library = await getLibrary(prisma);
+      if (library === null) {
+        res.status(404).json({ error: 'No library' });
+        return;
+      }
+      res.json({
+        id: library.id,
+        createdAt: library.createdAt,
+        passwordSalt: Buffer.from(library.passwordSalt).toString('base64'),
+        recoverySalt: Buffer.from(library.recoverySalt).toString('base64'),
+        passwordWrap: Buffer.from(library.passwordWrap).toString('base64'),
+        recoveryCodesRemaining: await countUnusedRecoveryCodes(prisma),
+        storage: await libraryStorage(prisma),
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Spec §3: the client rewraps the Library Key under the new password; the
+  // vault verifies the current auth key and swaps salt, verifier and wrap in
+  // one transaction. Device tokens are untouched; browser sessions end.
+  router.put('/library/password', auth, async (req, res, next) => {
+    try {
+      const parsed = changePasswordBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Invalid request' });
+        return;
+      }
+      const { authKey, ...material } = parsed.data;
+      if (!(await changePassword(prisma, authKey, material))) {
+        log.warn('Password change refused: invalid credentials');
+        res.status(401).json({ error: 'Invalid credentials' });
+        return;
+      }
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.put('/library/recovery-codes', auth, async (req, res, next) => {
+    try {
+      const parsed = replaceCodesBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Invalid request' });
+        return;
+      }
+      const ids = await replaceRecoveryCodes(prisma, parsed.data);
+      if (ids === null) {
+        log.warn('Recovery code regeneration refused: invalid credentials');
+        res.status(401).json({ error: 'Invalid credentials' });
+        return;
+      }
+      res.json({ ids });
     } catch (err) {
       next(err);
     }

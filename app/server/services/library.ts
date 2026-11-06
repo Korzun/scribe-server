@@ -117,3 +117,184 @@ export async function verifyOwner(prisma: PrismaClient, authKey: Buffer): Promis
   if (library === null) return false;
   return argon2.verify(library.authVerifier, authKey.toString('base64'));
 }
+
+/**
+ * The storage figures `GET /library` reports (spec §4). A placeholder until
+ * blobs exist: Task 9 replaces this body with real counts and nothing else in
+ * the route changes.
+ */
+export function libraryStorage(_prisma: PrismaClient): Promise<{
+  blobBytes: number;
+  blobCount: number;
+  meetingCount: number;
+  deletedMeetingCount: number;
+}> {
+  return Promise.resolve({ blobBytes: 0, blobCount: 0, meetingCount: 0, deletedMeetingCount: 0 });
+}
+
+/** How many recovery codes are still spendable. */
+export function countUnusedRecoveryCodes(prisma: PrismaClient): Promise<number> {
+  return prisma.recoveryCode.count({ where: { usedAt: null } });
+}
+
+export type PasswordMaterial = {
+  newPasswordSalt: Buffer;
+  newAuthKey: Buffer;
+  newPasswordWrap: Buffer;
+};
+
+/** The slice of a Prisma transaction client that `swapPassword` needs. */
+type PasswordTx = Pick<PrismaClient, 'library' | 'refreshToken'>;
+
+/**
+ * Swaps the password salt, verifier and wrap, and revokes every browser
+ * refresh token, in the caller's transaction.
+ *
+ * Spec §3: the password guards the key; a device token guards the door. So a
+ * password change or a recovery deliberately leaves every device token alone
+ * (a Mac keeps working), but it DOES end every browser session: a stolen
+ * refresh token must not outlive a credential change. `devices` is never
+ * touched here.
+ */
+async function swapPassword(
+  tx: PasswordTx,
+  libraryId: string,
+  material: PasswordMaterial,
+  newVerifier: string
+): Promise<void> {
+  await tx.library.update({
+    where: { id: libraryId },
+    data: {
+      passwordSalt: bytes(material.newPasswordSalt),
+      authVerifier: newVerifier,
+      passwordWrap: bytes(material.newPasswordWrap),
+    },
+  });
+  await tx.refreshToken.deleteMany({});
+}
+
+/**
+ * Changes the password (spec §3). The client already rewrapped the Library
+ * Key under the new password's key; the vault verifies the CURRENT auth key
+ * and swaps salt, verifier and wrap atomically. Returns false (and changes
+ * nothing) when the current key is wrong or no library exists.
+ */
+export async function changePassword(
+  prisma: PrismaClient,
+  authKey: Buffer,
+  material: PasswordMaterial
+): Promise<boolean> {
+  const library = await getLibrary(prisma);
+  if (library === null) return false;
+  if (!(await argon2.verify(library.authVerifier, authKey.toString('base64')))) return false;
+  const newVerifier = await hashAuthKey(material.newAuthKey);
+  await prisma.$transaction((tx) => swapPassword(tx, library.id, material, newVerifier));
+  log.info('Password changed');
+  return true;
+}
+
+/**
+ * Replaces all recovery codes and the recovery salt (spec §3), after
+ * verifying the current password's auth key. Old codes are deleted in the
+ * same transaction the new ones are written, so there is never a window with
+ * zero or twenty usable codes. Returns the new ids, or null on a wrong key.
+ */
+export async function replaceRecoveryCodes(
+  prisma: PrismaClient,
+  input: {
+    authKey: Buffer;
+    recoverySalt: Buffer;
+    codes: Array<{ authKey: Buffer; wrap: Buffer }>;
+  }
+): Promise<string[] | null> {
+  if (input.codes.length !== RECOVERY_CODE_COUNT) {
+    throw new Error(`A library needs exactly ten recovery codes, got ${input.codes.length}`);
+  }
+  const library = await getLibrary(prisma);
+  if (library === null) return null;
+  if (!(await argon2.verify(library.authVerifier, input.authKey.toString('base64')))) return null;
+
+  // Sequential, as in createLibrary: argon2's memory use times ten in parallel is a Pi-sized peak.
+  const verifiers: string[] = [];
+  for (const code of input.codes) verifiers.push(await hashAuthKey(code.authKey));
+  const ids = input.codes.map(() => generateId());
+
+  await prisma.$transaction(async (tx) => {
+    await tx.recoveryCode.deleteMany({});
+    await tx.recoveryCode.createMany({
+      data: input.codes.map((c, i) => ({
+        id: ids[i]!,
+        libraryId: library.id,
+        authVerifier: verifiers[i]!,
+        wrap: bytes(c.wrap),
+      })),
+    });
+    await tx.library.update({
+      where: { id: library.id },
+      data: { recoverySalt: bytes(input.recoverySalt) },
+    });
+  });
+  log.info('Recovery codes regenerated');
+  return ids;
+}
+
+/**
+ * Finds the first unused recovery code whose verifier matches `authKey`
+ * (spec §3). Verifies sequentially over at most ten rows and always walks
+ * every unused code rather than stopping at the match, so the work done does
+ * not reveal which index matched; only the returned id does.
+ */
+export async function findRecoveryCode(
+  prisma: PrismaClient,
+  authKey: Buffer
+): Promise<{ id: string; libraryId: string; wrap: Buffer } | null> {
+  const rows = await prisma.recoveryCode.findMany({
+    where: { usedAt: null },
+    orderBy: { id: 'asc' },
+  });
+  const text = authKey.toString('base64');
+  let found: (typeof rows)[number] | null = null;
+  for (const row of rows) {
+    const ok = await argon2.verify(row.authVerifier, text);
+    if (ok && found === null) found = row;
+  }
+  return found === null
+    ? null
+    : { id: found.id, libraryId: found.libraryId, wrap: Buffer.from(found.wrap) };
+}
+
+export type RecoveryOutcome = 'ok' | 'not_found' | 'rejected';
+
+/**
+ * Spends recovery code `id` to set a new password (spec §3): checks the code
+ * is unused and `authKey` matches its verifier, then, in one transaction,
+ * marks it used and swaps the password material (also ending browser
+ * sessions; device tokens stay valid). The conditional `usedAt IS NULL` update
+ * makes two racing uses of one code succeed at most once.
+ */
+export async function recoverPassword(
+  prisma: PrismaClient,
+  id: string,
+  authKey: Buffer,
+  material: PasswordMaterial,
+  now: number
+): Promise<RecoveryOutcome> {
+  const code = await prisma.recoveryCode.findUnique({ where: { id } });
+  if (code === null) return 'not_found';
+  if (code.usedAt !== null) return 'rejected';
+  if (!(await argon2.verify(code.authVerifier, authKey.toString('base64')))) return 'rejected';
+  const newVerifier = await hashAuthKey(material.newAuthKey);
+
+  const spent = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.recoveryCode.updateMany({
+      where: { id, usedAt: null },
+      data: { usedAt: now },
+    });
+    if (count === 0) return false;
+    await swapPassword(tx, code.libraryId, material, newVerifier);
+    return true;
+  });
+  if (!spent) return 'rejected';
+  log.info(`Recovery code used: ${id}`);
+  return 'ok';
+}

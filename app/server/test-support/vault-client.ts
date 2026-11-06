@@ -10,10 +10,11 @@ import {
   formatSecretKey,
   generateRecoveryCode,
   generateSecretKey,
+  parseRecoveryCode,
   parseSecretKey,
 } from '../crypto/codes';
 import { deriveAccountKeys } from '../crypto/kdf';
-import { keyWrapAad, seal } from '../crypto/seal';
+import { keyWrapAad, open, seal } from '../crypto/seal';
 
 /** Every field any route answers with, all optional: later tasks add theirs here. */
 export type ClientBody = {
@@ -37,6 +38,17 @@ export type ClientBody = {
   }>;
   id?: string;
   name?: string;
+  createdAt?: number;
+  recoveryCodesRemaining?: number;
+  storage?: {
+    blobBytes: number;
+    blobCount: number;
+    meetingCount: number;
+    deletedMeetingCount: number;
+  };
+  ids?: string[];
+  recoveryId?: string;
+  wrap?: string;
 };
 
 export type ClientResponse = { status: number; body: ClientBody };
@@ -200,6 +212,176 @@ export class VaultClient {
       .delete(`/api/v1/devices/${id}`)
       .set('Authorization', `Bearer ${token}`);
     return { status: res.status, body: res.body };
+  }
+
+  /** GET /library: the owner's view of the library's public material. */
+  async libraryInfo(token: string): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .get('/api/v1/library')
+      .set('Authorization', `Bearer ${token}`);
+    return { status: res.status, body: res.body };
+  }
+
+  /** PUT /library/password with an arbitrary body (wrong keys, shape tests). */
+  async putPassword(token: string, body: unknown): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .put('/api/v1/library/password')
+      .set('Authorization', `Bearer ${token}`)
+      .send(body as object);
+    return { status: res.status, body: res.body };
+  }
+
+  /** PUT /library/recovery-codes with an arbitrary body. */
+  async putRecoveryCodes(token: string, body: unknown): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .put('/api/v1/library/recovery-codes')
+      .set('Authorization', `Bearer ${token}`)
+      .send(body as object);
+    return { status: res.status, body: res.body };
+  }
+
+  /**
+   * Changes the password like the app does: fetches the library, derives the
+   * current keys, unwraps the Library Key locally, derives keys for a fresh
+   * salt and the new password, and sends the proof plus the rewrapped key.
+   */
+  async changePassword(input: {
+    token: string;
+    password: string;
+    newPassword: string;
+    secretKey: string;
+  }): Promise<ClientResponse> {
+    const { libraryKey, authKey, libraryId } = await this.unlock(input);
+    const newPasswordSalt = crypto.randomBytes(16);
+    const next = deriveAccountKeys({
+      secret: Buffer.from(input.newPassword, 'utf8'),
+      secretKey: parseSecretKey(input.secretKey)!,
+      salt: newPasswordSalt,
+    });
+    return this.putPassword(input.token, {
+      authKey: authKey.toString('base64'),
+      newPasswordSalt: newPasswordSalt.toString('base64'),
+      newAuthKey: next.authKey.toString('base64'),
+      newPasswordWrap: seal(next.kek, libraryKey, keyWrapAad(libraryId, 'password')).toString(
+        'base64'
+      ),
+    });
+  }
+
+  /**
+   * Replaces the recovery codes like the app does: unwraps the Library Key,
+   * mints `count` (default ten) fresh codes under a fresh recovery salt and
+   * wraps the key under each. Returns the response plus the formatted codes.
+   */
+  async regenerateRecoveryCodes(input: {
+    token: string;
+    password: string;
+    secretKey: string;
+    count?: number;
+  }): Promise<ClientResponse & { codes: string[] }> {
+    const { libraryKey, authKey, libraryId } = await this.unlock(input);
+    const secretKey = parseSecretKey(input.secretKey)!;
+    const recoverySalt = crypto.randomBytes(16);
+    const raw = Array.from({ length: input.count ?? 10 }, () => generateRecoveryCode());
+    const codes = raw.map((code) => {
+      const keys = deriveAccountKeys({ secret: code, secretKey, salt: recoverySalt });
+      return {
+        authKey: keys.authKey.toString('base64'),
+        wrap: seal(keys.kek, libraryKey, keyWrapAad(libraryId, 'recovery')).toString('base64'),
+      };
+    });
+    const res = await this.putRecoveryCodes(input.token, {
+      authKey: authKey.toString('base64'),
+      recoverySalt: recoverySalt.toString('base64'),
+      codes,
+    });
+    return { ...res, codes: raw.map(formatRecoveryCode) };
+  }
+
+  /**
+   * Recovers from a forgotten password like the app does: derives the recovery
+   * keys from the code, fetches and unwraps the code's wrap, then sets a new
+   * password. `libraryKey` is the key the code unwrapped (when step one passed).
+   */
+  async recover(input: {
+    code: string;
+    secretKey: string;
+    newPassword: string;
+  }): Promise<ClientResponse & { libraryKey?: Buffer }> {
+    const salts = await this.salts();
+    const code = parseRecoveryCode(input.code);
+    const secretKey = parseSecretKey(input.secretKey);
+    if (salts.status !== 200 || code === null || secretKey === null) {
+      throw new Error('recover: could not fetch salts or parse the code or Secret Key');
+    }
+    const recovery = deriveAccountKeys({
+      secret: code,
+      secretKey,
+      salt: Buffer.from(salts.body.recoverySalt!, 'base64'),
+    });
+    const first = await request(this.app)
+      .post('/api/v1/recovery')
+      .send({ authKey: recovery.authKey.toString('base64') });
+    if (first.status !== 200) return { status: first.status, body: first.body };
+
+    // The wrap's AAD binds it to the library id, which the answer carries.
+    const libraryId = first.body.libraryId as string;
+    const libraryKey = open(
+      recovery.kek,
+      Buffer.from(first.body.wrap, 'base64'),
+      keyWrapAad(libraryId, 'recovery')
+    );
+    const newPasswordSalt = crypto.randomBytes(16);
+    const next = deriveAccountKeys({
+      secret: Buffer.from(input.newPassword, 'utf8'),
+      secretKey,
+      salt: newPasswordSalt,
+    });
+    const second = await request(this.app)
+      .post(`/api/v1/recovery/${first.body.recoveryId}/password`)
+      .send({
+        authKey: recovery.authKey.toString('base64'),
+        newPasswordSalt: newPasswordSalt.toString('base64'),
+        newAuthKey: next.authKey.toString('base64'),
+        newPasswordWrap: seal(next.kek, libraryKey, keyWrapAad(libraryId, 'password')).toString(
+          'base64'
+        ),
+      });
+    return { status: second.status, body: second.body, libraryKey };
+  }
+
+  /** POST /recovery with an arbitrary body. */
+  async postRecovery(body: unknown): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .post('/api/v1/recovery')
+      .send(body as object);
+    return { status: res.status, body: res.body };
+  }
+
+  /** POST /recovery/:id/password with an arbitrary body. */
+  async postRecoveryPassword(id: string, body: unknown): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .post(`/api/v1/recovery/${id}/password`)
+      .send(body as object);
+    return { status: res.status, body: res.body };
+  }
+
+  /** Fetches the library, derives the current keys and unwraps the Library Key, as a signed-in Mac does. */
+  private async unlock(input: { token: string; password: string; secretKey: string }) {
+    const info = await this.libraryInfo(input.token);
+    if (info.status !== 200) throw new Error(`unlock: library info answered ${info.status}`);
+    const keys = deriveAccountKeys({
+      secret: Buffer.from(input.password, 'utf8'),
+      secretKey: parseSecretKey(input.secretKey)!,
+      salt: Buffer.from(info.body.passwordSalt!, 'base64'),
+    });
+    const libraryId = info.body.id!;
+    const libraryKey = open(
+      keys.kek,
+      Buffer.from(info.body.passwordWrap!, 'base64'),
+      keyWrapAad(libraryId, 'password')
+    );
+    return { libraryKey, authKey: keys.authKey, libraryId };
   }
 
   async createLibrary(input: unknown): Promise<ClientResponse> {
