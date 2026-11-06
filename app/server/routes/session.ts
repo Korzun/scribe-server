@@ -14,6 +14,7 @@ import {
   revokeRefreshToken,
   type JwtSecret,
 } from '../services/token';
+import { currentEpoch, withVaultWriter } from '../services/vault-gate';
 import type { AppConfig } from '../types';
 import { base64Bytes } from '../utils/base64-schema';
 
@@ -63,9 +64,17 @@ export function createSessionRouter({ prisma, jwtSecret, config, now }: SessionR
   // LAN-only install.
   const secure = config.publicUrl?.startsWith('https') === true;
 
-  async function issueTokens(res: Response): Promise<void> {
-    const accessToken = signAccessToken(jwtSecret.current(), { owner: true }, now() / 1000);
-    const refreshToken = await createRefreshToken(prisma, now());
+  /**
+   * Signs the access token and stores the refresh token under the vault gate,
+   * for the `epoch` the request started in: a keys-lost reset that landed
+   * while the credential was being checked refuses this (401) rather than
+   * minting a session, under the rotated secret, for the library after it.
+   */
+  async function issueTokens(res: Response, epoch: number): Promise<void> {
+    const { accessToken, refreshToken } = await withVaultWriter(epoch, async () => ({
+      accessToken: signAccessToken(jwtSecret.current(), { owner: true }, now() / 1000),
+      refreshToken: await createRefreshToken(prisma, now()),
+    }));
     res.cookie(REFRESH_COOKIE, refreshToken, {
       httpOnly: true,
       sameSite: 'strict',
@@ -82,6 +91,7 @@ export function createSessionRouter({ prisma, jwtSecret, config, now }: SessionR
 
   router.post('/session', loginLimit, async (req, res, next) => {
     try {
+      const epoch = currentEpoch();
       const parsed = loginBody.safeParse(req.body);
       if (!parsed.success) {
         res.status(400).json({ error: 'Invalid request' });
@@ -98,7 +108,7 @@ export function createSessionRouter({ prisma, jwtSecret, config, now }: SessionR
       }
       log.info('Owner signed in');
       await deleteExpired(prisma, now());
-      await issueTokens(res);
+      await issueTokens(res, epoch);
     } catch (err) {
       next(err);
     }
@@ -106,6 +116,7 @@ export function createSessionRouter({ prisma, jwtSecret, config, now }: SessionR
 
   router.post('/session/refresh', async (req, res, next) => {
     try {
+      const epoch = currentEpoch();
       const raw = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
       const reject = (): void => {
         clearRefreshCookie(res);
@@ -120,7 +131,7 @@ export function createSessionRouter({ prisma, jwtSecret, config, now }: SessionR
         reject();
         return;
       }
-      await issueTokens(res);
+      await issueTokens(res, epoch);
     } catch (err) {
       next(err);
     }

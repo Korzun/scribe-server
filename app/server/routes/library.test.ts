@@ -1,11 +1,13 @@
 import * as crypto from 'crypto';
 import * as fs from 'fs';
+import * as http from 'http';
+import type { AddressInfo } from 'net';
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { parseSecretKey } from '../crypto/codes';
 import { deriveAccountKeys } from '../crypto/kdf';
-import { keyWrapAad, open, seal } from '../crypto/seal';
+import { blobAad, keyWrapAad, open, seal } from '../crypto/seal';
 import { putBlob, tombstoneMeeting, type BlobsDeps } from '../services/blobs';
 import { createHarness, type Harness } from '../test-support/harness';
 import {
@@ -510,5 +512,118 @@ describe('DELETE /api/v1/library (keys lost)', () => {
     expect((await client.deleteLibrary({ setupCode: 'nope', confirm: 'DELETE' })).status).toBe(429);
     h.now.value += 60 * 60 * 1000;
     expect((await client.deleteLibrary({ setupCode: 'nope', confirm: 'DELETE' })).status).toBe(403);
+  });
+});
+
+describe('the keys-lost reset against live writers', () => {
+  /** A sealed-looking body (the route checks only the header). */
+  const body = (text: string) =>
+    seal(crypto.randomBytes(32), Buffer.from(text), blobAad('x', 'y', 'z', 1));
+
+  it('a PUT parked mid-write while the reset runs leaves nothing in the next library', async () => {
+    const token = await cheapLibrary('the-code');
+    const meeting = crypto.randomUUID();
+
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let reachedStore!: () => void;
+    const stored = new Promise<void>((resolve) => (reachedStore = resolve));
+    const real = h.blobStore.put.bind(h.blobStore);
+    const spy = vi.spyOn(h.blobStore, 'put').mockImplementation(async (bytes) => {
+      reachedStore();
+      await gate;
+      return real(bytes);
+    });
+    try {
+      const putting = client.putMeetingBlob({
+        token,
+        meetingId: meeting,
+        kind: 'manifest',
+        bytes: body('old library'),
+        ifMatch: null,
+      });
+      await stored;
+      const resetting = client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      release();
+      const [, reset] = await Promise.all([putting, resetting]);
+      expect(reset.status).toBe(204);
+    } finally {
+      spy.mockRestore();
+    }
+
+    await cheapLibrary('the-code');
+    expect(await h.prisma.change.count()).toBe(0);
+    expect(await h.prisma.meeting.count()).toBe(0);
+    expect(await h.prisma.blob.count()).toBe(0);
+    expect(fs.readdirSync(h.blobsDir)).toEqual([]);
+  });
+
+  it('a PUT authenticated before the reset but finishing its body after a new library exists is 401', async () => {
+    const token = await cheapLibrary('the-code');
+    const bytes = body('late body');
+    const server = h.app.listen(0);
+    try {
+      await new Promise<void>((resolve) => server.once('listening', resolve));
+      const { port } = server.address() as AddressInfo;
+      const response = new Promise<{ status: number; text: string }>((resolve, reject) => {
+        const req = http.request(
+          {
+            port,
+            method: 'PUT',
+            path: `/api/v1/meetings/${crypto.randomUUID()}/blobs/manifest`,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/octet-stream',
+              'Content-Length': String(bytes.length),
+              'X-Scribe-Sha256': crypto.createHash('sha256').update(bytes).digest('hex'),
+              'If-None-Match': '*',
+            },
+          },
+          (res) => {
+            let text = '';
+            res.on('data', (c: Buffer) => (text += c.toString()));
+            res.on('end', () => resolve({ status: res.statusCode ?? 0, text }));
+          }
+        );
+        req.on('error', reject);
+        req.write(bytes.subarray(0, 4));
+        // Auth runs before the body is read: give it time, then reset and
+        // re-create the library while the body is still in flight.
+        setTimeout(() => {
+          void (async () => {
+            expect(
+              (await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' })).status
+            ).toBe(204);
+            await cheapLibrary('the-code');
+            req.end(bytes.subarray(4));
+          })().catch(reject);
+        }, 100);
+      });
+      const res = await response;
+      expect(res.status).toBe(401);
+      expect(JSON.parse(res.text)).toEqual({ error: 'Unauthorized' });
+    } finally {
+      server.closeAllConnections();
+      server.close();
+    }
+    expect(await h.prisma.change.count()).toBe(0);
+    expect(await h.prisma.meeting.count()).toBe(0);
+  });
+});
+
+describe('reset ordering', () => {
+  it('a rotation that fails after the wipe answers 500, and the wipe stands', async () => {
+    await cheapLibrary('the-code');
+    const rotate = vi
+      .spyOn(h.jwtSecret, 'rotate')
+      .mockRejectedValue(Object.assign(new Error('secret=deadbeef'), { code: 'P2000' }));
+
+    const res = await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' });
+
+    expect(rotate).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Internal server error' });
+    expect((await client.status()).body.libraryExists).toBe(false);
   });
 });

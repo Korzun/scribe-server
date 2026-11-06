@@ -87,7 +87,7 @@ export function createLibraryBlobsRouter({
       }
       const name = libraryKindName(kind);
       const deviceId = req.owner?.via === 'device' ? req.owner.deviceId : null;
-      const revision = await deleteBlob(deps, LIBRARY_SCOPE, name, deviceId);
+      const revision = await deleteBlob(deps, LIBRARY_SCOPE, name, deviceId, req.vaultEpoch);
       if (revision === null) {
         res.status(404).json({ error: 'Not found' });
         return;
