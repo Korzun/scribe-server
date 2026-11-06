@@ -113,6 +113,7 @@ export async function handleBlobPut(
     size: bytes.length,
     ifMatch,
     deviceId: req.owner?.via === 'device' ? req.owner.deviceId : null,
+    epoch: req.vaultEpoch,
   });
   if (!result.ok) {
     if (result.reason === 'gone') {
@@ -122,7 +123,7 @@ export async function handleBlobPut(
     }
     return;
   }
-  res.status(result.revision === 1 ? 201 : 200).json({
+  res.status(result.created ? 201 : 200).json({
     revision: result.revision,
     seq: result.seq,
     sha256: result.sha256,

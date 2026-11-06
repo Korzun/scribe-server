@@ -225,16 +225,12 @@ export function createLibraryRouter({
         res.status(403).json(refused);
         return;
       }
-      await resetLibrary(prisma, blobStore);
-      // After the wipe has committed: end every browser session of the old
-      // library, `exp` or not (refresh tokens went with the tables). A
-      // rotation that fails is logged, not fatal: the library is already gone.
-      try {
-        await jwtSecret.rotate();
-      } catch (err) {
-        log.error(
-          `Signing secret rotation failed after the reset: ${err instanceof Error ? err.message : String(err)}`
-        );
+      // The wipe, the secret rotation and the file removal, in that order
+      // (see resetLibrary). A failed rotation is a 500: the library is gone,
+      // but browser sessions of it may not be, so this is not a success.
+      if ((await resetLibrary(prisma, blobStore, jwtSecret)) === 'rotation_failed') {
+        res.status(500).json({ error: 'Internal server error' });
+        return;
       }
       res.status(204).end();
     } catch (err) {

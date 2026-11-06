@@ -16,6 +16,7 @@ import { createStatusRouter } from './routes/status';
 import type { BlobStore } from './services/blob-store';
 import type { GarbageCollector } from './services/gc';
 import type { JwtSecret } from './services/token';
+import { VaultResetError } from './services/vault-gate';
 import { AppConfig } from './types';
 import { APP_VERSION } from './utils/app-version';
 
@@ -76,6 +77,12 @@ export function createServer({
     }
     if (res.headersSent) {
       next(err);
+      return;
+    }
+    // The request's credential belonged to a library a keys-lost reset deleted
+    // while it was in flight (services/vault-gate.ts).
+    if (err instanceof VaultResetError) {
+      res.status(401).json({ error: 'Unauthorized' });
       return;
     }
     log.error(

@@ -91,7 +91,7 @@ export function createMeetingsRouter({
         return;
       }
       const deviceId = req.owner?.via === 'device' ? req.owner.deviceId : null;
-      const outcome = await tombstoneMeeting(deps, id, deviceId);
+      const outcome = await tombstoneMeeting(deps, id, deviceId, req.vaultEpoch);
       if (outcome === 'not_found') {
         res.status(404).json({ error: 'Not found' });
         return;

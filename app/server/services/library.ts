@@ -5,6 +5,8 @@ import { logger } from '../logger';
 import { generateId } from '../utils/id';
 import type { BlobStore } from './blob-store';
 import { newDeviceToken } from './device';
+import type { JwtSecret } from './token';
+import { withVaultReset, withVaultWriter } from './vault-gate';
 
 const log = logger('Library');
 
@@ -72,36 +74,40 @@ export async function createLibrary(
   const { token, tokenHash } = newDeviceToken();
   const deviceId = generateId();
 
-  await prisma.$transaction(async (tx) => {
-    if ((await tx.library.count()) > 0) throw new LibraryExistsError();
-    await tx.library.create({
-      data: {
-        id: input.libraryId,
-        createdAt: now,
-        passwordSalt: bytes(input.passwordSalt),
-        recoverySalt: bytes(input.recoverySalt),
-        authVerifier,
-        passwordWrap: bytes(input.passwordWrap),
-      },
-    });
-    await tx.recoveryCode.createMany({
-      data: input.recoveryCodes.map((c, i) => ({
-        id: generateId(),
-        libraryId: input.libraryId,
-        authVerifier: codeVerifiers[i],
-        wrap: bytes(c.wrap),
-      })),
-    });
-    await tx.device.create({
-      data: {
-        id: deviceId,
-        libraryId: input.libraryId,
-        name: input.device.name,
-        tokenHash,
-        createdAt: now,
-      },
-    });
-  });
+  // Shared vault gate: a creation never lands between a reset's wipe and its
+  // file removal.
+  await withVaultWriter(undefined, () =>
+    prisma.$transaction(async (tx) => {
+      if ((await tx.library.count()) > 0) throw new LibraryExistsError();
+      await tx.library.create({
+        data: {
+          id: input.libraryId,
+          createdAt: now,
+          passwordSalt: bytes(input.passwordSalt),
+          recoverySalt: bytes(input.recoverySalt),
+          authVerifier,
+          passwordWrap: bytes(input.passwordWrap),
+        },
+      });
+      await tx.recoveryCode.createMany({
+        data: input.recoveryCodes.map((c, i) => ({
+          id: generateId(),
+          libraryId: input.libraryId,
+          authVerifier: codeVerifiers[i],
+          wrap: bytes(c.wrap),
+        })),
+      });
+      await tx.device.create({
+        data: {
+          id: deviceId,
+          libraryId: input.libraryId,
+          name: input.device.name,
+          tokenHash,
+          createdAt: now,
+        },
+      });
+    })
+  );
 
   log.info(`Library created: ${input.libraryId}, first device ${deviceId}`);
   return { libraryId: input.libraryId, deviceId, token };
@@ -171,16 +177,44 @@ const RESET_TABLES: ReadonlyArray<(db: PrismaClient) => Prisma.PrismaPromise<unk
  * Nothing the vault's cryptography knows can authorise this, since the owner
  * has lost it; the route authorises it with the live setup code instead.
  *
- * Every row goes in one transaction, so a failure leaves the library whole;
- * only then are the files removed (a crash in between leaves unreferenced
- * ciphertext under a key nobody holds, which the next reset clears).
- * Afterwards the vault is as fresh as a new
- * install: status says no library and setup can run again.
+ * All of it runs holding the vault gate exclusive (services/vault-gate.ts):
+ * writes already in flight finish first (and are wiped with the rest), and
+ * any request that authenticated before the reset is refused afterwards, so
+ * nothing of the old library can land in the next one.
+ *
+ * In order: every row goes in one transaction, so a failure there leaves the
+ * library whole. Then, at once, the signing secret is rotated, so no browser
+ * access token of the old library is accepted by the next one (refresh
+ * tokens went with the tables). Then the files are removed (unreadable
+ * ciphertext under a key nobody holds; a crash before this leaves them for
+ * the next reset). A failed rotation is still followed by the file removal,
+ * and reported as `'rotation_failed'`: the library is gone, but the caller
+ * must not claim success. Its log line names the error's class and code
+ * only: a Prisma error can echo its arguments, and the argument is the new
+ * secret.
  */
-export async function resetLibrary(prisma: PrismaClient, blobStore: BlobStore): Promise<void> {
-  await prisma.$transaction(RESET_TABLES.map((deleteAll) => deleteAll(prisma)));
-  await blobStore.clear();
-  log.info('Library deleted (keys-lost reset)');
+export function resetLibrary(
+  prisma: PrismaClient,
+  blobStore: BlobStore,
+  jwtSecret: JwtSecret
+): Promise<'ok' | 'rotation_failed'> {
+  return withVaultReset(async () => {
+    await prisma.$transaction(RESET_TABLES.map((deleteAll) => deleteAll(prisma)));
+    let outcome: 'ok' | 'rotation_failed' = 'ok';
+    try {
+      await jwtSecret.rotate();
+    } catch (err) {
+      const name = err instanceof Error ? err.name : typeof err;
+      const code = (err as { code?: unknown } | null)?.code;
+      log.error(
+        `Library deleted, but rotating the signing secret failed: ${name}${typeof code === 'string' ? ` (${code})` : ''}`
+      );
+      outcome = 'rotation_failed';
+    }
+    await blobStore.clear();
+    log.info('Library deleted (keys-lost reset)');
+    return outcome;
+  });
 }
 
 /** How many recovery codes are still spendable. */

@@ -4,6 +4,7 @@ import { logger } from '../logger';
 import type { BlobStore } from './blob-store';
 import { DELETE_GRACE_MS, releaseBlobFile } from './blobs';
 import { withKeyLock } from './keyed-lock';
+import { withVaultWriter } from './vault-gate';
 
 const log = logger('GC');
 
@@ -77,16 +78,20 @@ export function createGarbageCollector({
 
   return {
     sweep(options = {}) {
-      return withKeyLock('gc', async () => {
-        const purged = await purgeDeletedMeetings(options.graceMs ?? graceMs);
-        const expiredUploads = uploads === undefined ? 0 : await uploads.expire(now());
-        if (purged.purgedMeetings > 0 || expiredUploads > 0) {
-          log.info(
-            `Swept: ${purged.purgedMeetings} meetings purged, ${purged.removedFiles} files removed, ${expiredUploads} uploads expired`
-          );
-        }
-        return { ...purged, expiredUploads };
-      });
+      // Shared vault gate (no epoch: no request behind it), so a sweep never
+      // interleaves with a keys-lost reset.
+      return withVaultWriter(undefined, () =>
+        withKeyLock('gc', async () => {
+          const purged = await purgeDeletedMeetings(options.graceMs ?? graceMs);
+          const expiredUploads = uploads === undefined ? 0 : await uploads.expire(now());
+          if (purged.purgedMeetings > 0 || expiredUploads > 0) {
+            log.info(
+              `Swept: ${purged.purgedMeetings} meetings purged, ${purged.removedFiles} files removed, ${expiredUploads} uploads expired`
+            );
+          }
+          return { ...purged, expiredUploads };
+        })
+      );
     },
   };
 }

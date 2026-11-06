@@ -183,6 +183,29 @@ describe('DELETE /api/v1/library/blobs/voice/:voiceId', () => {
     expect(await h.prisma.change.count({ where: { seq: { gt: lastSeq } } })).toBe(1);
   });
 
+  it('a voice re-created after deletion continues its revisions instead of restarting at 1', async () => {
+    const voiceId = crypto.randomUUID();
+    const kind = `voice/${voiceId}`;
+    expect((await put(kind, sealed(kind, 1, 'one'), null)).body.revision).toBe(1);
+    expect((await put(kind, sealed(kind, 2, 'two'), 1)).body.revision).toBe(2);
+    expect((await client.deleteVoice(owner.deviceToken, voiceId)).status).toBe(204);
+
+    const again = await put(kind, sealed(kind, 3, 'three'), null);
+    expect(again.status).toBe(201);
+    expect(again.body.revision).toBe(3);
+    expect((await get(kind)).etag).toBe('"3"');
+    expect((await put(kind, sealed(kind, 4, 'four'), 3)).status).toBe(200);
+
+    const log = await h.prisma.change.findMany({ where: { kind }, orderBy: { seq: 'asc' } });
+    expect(log.map((c) => [c.revision, c.deleted])).toEqual([
+      [1, false],
+      [2, false],
+      [2, true],
+      [3, false],
+      [4, false],
+    ]);
+  });
+
   it('a voice sharing its bytes with another blob keeps the file', async () => {
     const a = `voice/${crypto.randomUUID()}`;
     const b = `voice/${crypto.randomUUID()}`;

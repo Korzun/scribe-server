@@ -43,7 +43,14 @@ describe('putBlob', () => {
       deviceId: null,
     });
 
-    expect(res).toEqual({ ok: true, revision: 1, seq: 1, sha256: sha(bytes), size: bytes.length });
+    expect(res).toEqual({
+      ok: true,
+      created: true,
+      revision: 1,
+      seq: 1,
+      sha256: sha(bytes),
+      size: bytes.length,
+    });
     expect(await h.prisma.meeting.findUnique({ where: { id } })).toEqual({
       id,
       createdAt: h.now.value,

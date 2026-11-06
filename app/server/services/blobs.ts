@@ -8,6 +8,7 @@ import { MEETING_KINDS } from './blob-kinds';
 import { HashMismatchError, type BlobStore } from './blob-store';
 import { appendChange } from './change-log';
 import { withKeyLock, withKeyLocks } from './keyed-lock';
+import { withVaultWriter } from './vault-gate';
 
 const log = logger('Blobs');
 
@@ -30,10 +31,20 @@ export type PutBlobInput = {
   ifMatch: number | null;
   /** The writing device, or `null` for a browser session. */
   deviceId: string | null;
+  /** The request's reset epoch (`req.vaultEpoch`); a stale one is refused. Omitted by internal callers. */
+  epoch?: number;
 } & ({ bytes: Buffer; stream?: undefined } | { stream: Readable; bytes?: undefined });
 
 export type PutResult =
-  | { ok: true; revision: number; seq: number; sha256: string; size: number }
+  | {
+      ok: true;
+      /** True when no blob existed (a first write, or a library blob re-created after deletion). */
+      created: boolean;
+      revision: number;
+      seq: number;
+      sha256: string;
+      size: number;
+    }
   | { ok: false; reason: 'conflict'; currentRevision: number }
   | { ok: false; reason: 'gone' };
 
@@ -69,87 +80,111 @@ export const DELETE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
  * nothing. For a stream the recorded size is what was actually received.
  */
 export function putBlob(deps: BlobsDeps, input: PutBlobInput): Promise<PutResult> {
+  // The vault gate first (a keys-lost reset waits for this whole write, or
+  // this write is refused after it), then the kind lock. See vault-gate.ts.
+  return withVaultWriter(input.epoch, () =>
+    withKeyLock(kindKey(input.scope, input.kind), () => putUnderLock(deps, input))
+  );
+}
+
+/**
+ * The revision a re-created blob continues from. A library blob (a voice) can
+ * be deleted and later written again under the same kind; restarting at 1
+ * would reuse a `(kind, revision)` the Mac's AAD has already bound to other
+ * ciphertext, so an old blob could authenticate as the new one. Its next
+ * revision is therefore one past the highest the change log ever recorded
+ * for that kind. A meeting blob never comes back (its meeting is tombstoned
+ * for good), so it starts from 0 as always.
+ */
+async function revisionFloor(prisma: PrismaClient, scope: string, kind: string): Promise<number> {
+  if (scope !== LIBRARY_SCOPE) return 0;
+  const max = await prisma.change.aggregate({
+    where: { meetingId: null, kind },
+    _max: { revision: true },
+  });
+  return max._max.revision ?? 0;
+}
+
+async function putUnderLock(deps: BlobsDeps, input: PutBlobInput): Promise<PutResult> {
   const { prisma, blobStore, now } = deps;
   const { scope, kind, sha256, ifMatch, deviceId } = input;
-
-  return withKeyLock(kindKey(scope, kind), async (): Promise<PutResult> => {
-    const isMeeting = scope !== LIBRARY_SCOPE;
-    // Checked once, here, under the kind lock: `tombstoneMeeting` takes this
-    // same lock (for every kind) to write the tombstone, so the answer cannot
-    // change between this read and the commit below.
-    if (isMeeting) {
-      const meeting = await prisma.meeting.findUnique({ where: { id: scope } });
-      if (meeting !== null && meeting.deletedAt !== null) {
-        log.info(`Blob refused: ${scope}/${kind} belongs to a deleted meeting`);
-        return { ok: false, reason: 'gone' };
-      }
+  const isMeeting = scope !== LIBRARY_SCOPE;
+  // Checked once, here, under the kind lock: `tombstoneMeeting` takes this
+  // same lock (for every kind) to write the tombstone, so the answer cannot
+  // change between this read and the commit below.
+  if (isMeeting) {
+    const meeting = await prisma.meeting.findUnique({ where: { id: scope } });
+    if (meeting !== null && meeting.deletedAt !== null) {
+      log.info(`Blob refused: ${scope}/${kind} belongs to a deleted meeting`);
+      return { ok: false, reason: 'gone' };
     }
+  }
 
-    const current = await prisma.blob.findUnique({ where: { scope_kind: { scope, kind } } });
-    const currentRevision = current?.revision ?? 0;
-    const satisfied = ifMatch === null ? current === null : current?.revision === ifMatch;
-    if (!satisfied) {
-      log.info(
-        `Blob conflict: ${scope}/${kind} expected ${ifMatch ?? 'none'}, current ${currentRevision}`
-      );
-      return { ok: false, reason: 'conflict', currentRevision };
+  const current = await prisma.blob.findUnique({ where: { scope_kind: { scope, kind } } });
+  const currentRevision = current?.revision ?? 0;
+  const satisfied = ifMatch === null ? current === null : current?.revision === ifMatch;
+  if (!satisfied) {
+    log.info(
+      `Blob conflict: ${scope}/${kind} expected ${ifMatch ?? 'none'}, current ${currentRevision}`
+    );
+    return { ok: false, reason: 'conflict', currentRevision };
+  }
+
+  if (input.bytes !== undefined) {
+    const actual = createHash('sha256').update(input.bytes).digest('hex');
+    if (actual !== sha256 || input.bytes.length !== input.size) {
+      throw new HashMismatchError(sha256, actual);
     }
+  }
 
-    if (input.bytes !== undefined) {
-      const actual = createHash('sha256').update(input.bytes).digest('hex');
-      if (actual !== sha256 || input.bytes.length !== input.size) {
-        throw new HashMismatchError(sha256, actual);
-      }
-    }
+  const revision =
+    (current === null ? await revisionFloor(prisma, scope, kind) : currentRevision) + 1;
+  const at = now();
 
-    const revision = currentRevision + 1;
-    const at = now();
-
-    // Storing the file and committing the row that references it happen under
-    // the file's own lock, so a concurrent overwrite of a *different* kind
-    // that shares these bytes cannot unlink the file in between.
-    const { seq, size } = await withKeyLock(fileKey(sha256), async () => {
-      const stored =
-        input.bytes !== undefined
-          ? await blobStore.put(input.bytes)
-          : await blobStore.putStream(input.stream, sha256);
-      const blobRow = { revision, sha256, size: stored.size, deviceId, updatedAt: at };
-      const [, change] = await prisma.$transaction([
-        prisma.blob.upsert({
-          where: { scope_kind: { scope, kind } },
-          create: { scope, kind, ...blobRow },
-          update: blobRow,
-        }),
-        appendChange(prisma, {
-          meetingId: isMeeting ? scope : null,
-          kind,
-          revision,
-          sha256,
-          size: stored.size,
-          deleted: false,
-          deviceId,
-          at,
-        }),
-        ...(isMeeting
-          ? [
-              prisma.meeting.upsert({
-                where: { id: scope },
-                create: { id: scope, createdAt: at },
-                update: {},
-              }),
-            ]
-          : []),
-      ]);
-      return { seq: change.seq, size: stored.size };
-    });
-
-    if (current !== null && current.sha256 !== sha256) {
-      await releaseBlobFile(deps, current.sha256);
-    }
-
-    log.info(`Blob stored: ${scope}/${kind} revision ${revision} (${size} bytes)`);
-    return { ok: true, revision, seq, sha256, size };
+  // Storing the file and committing the row that references it happen under
+  // the file's own lock, so a concurrent overwrite of a *different* kind
+  // that shares these bytes cannot unlink the file in between.
+  const { seq, size } = await withKeyLock(fileKey(sha256), async () => {
+    const stored =
+      input.bytes !== undefined
+        ? await blobStore.put(input.bytes)
+        : await blobStore.putStream(input.stream, sha256);
+    const blobRow = { revision, sha256, size: stored.size, deviceId, updatedAt: at };
+    const [, change] = await prisma.$transaction([
+      prisma.blob.upsert({
+        where: { scope_kind: { scope, kind } },
+        create: { scope, kind, ...blobRow },
+        update: blobRow,
+      }),
+      appendChange(prisma, {
+        meetingId: isMeeting ? scope : null,
+        kind,
+        revision,
+        sha256,
+        size: stored.size,
+        deleted: false,
+        deviceId,
+        at,
+      }),
+      ...(isMeeting
+        ? [
+            prisma.meeting.upsert({
+              where: { id: scope },
+              create: { id: scope, createdAt: at },
+              update: {},
+            }),
+          ]
+        : []),
+    ]);
+    return { seq: change.seq, size: stored.size };
   });
+
+  if (current !== null && current.sha256 !== sha256) {
+    await releaseBlobFile(deps, current.sha256);
+  }
+
+  log.info(`Blob stored: ${scope}/${kind} revision ${revision} (${size} bytes)`);
+  return { ok: true, created: current === null, revision, seq, sha256, size };
 }
 
 export type TombstoneOutcome = 'deleted' | 'already' | 'not_found';
@@ -179,34 +214,37 @@ export type TombstoneOutcome = 'deleted' | 'already' | 'not_found';
 export function tombstoneMeeting(
   deps: BlobsDeps,
   meetingId: string,
-  deviceId: string | null
+  deviceId: string | null,
+  epoch?: number
 ): Promise<TombstoneOutcome> {
   const { prisma, now } = deps;
   const keys = MEETING_KINDS.map((kind) => kindKey(meetingId, kind));
-  return withKeyLocks(keys, async (): Promise<TombstoneOutcome> => {
-    const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-    if (meeting === null) return 'not_found';
-    if (meeting.deletedAt !== null) return 'already';
-    const at = now();
-    await prisma.$transaction([
-      prisma.meeting.update({
-        where: { id: meetingId },
-        data: { deletedAt: at, purgeAfter: at + DELETE_GRACE_MS },
-      }),
-      appendChange(prisma, {
-        meetingId,
-        kind: 'meeting',
-        revision: 0,
-        sha256: null,
-        size: null,
-        deleted: true,
-        deviceId,
-        at,
-      }),
-    ]);
-    log.info(`Meeting deleted: ${meetingId}`);
-    return 'deleted';
-  });
+  return withVaultWriter(epoch, () =>
+    withKeyLocks(keys, async (): Promise<TombstoneOutcome> => {
+      const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+      if (meeting === null) return 'not_found';
+      if (meeting.deletedAt !== null) return 'already';
+      const at = now();
+      await prisma.$transaction([
+        prisma.meeting.update({
+          where: { id: meetingId },
+          data: { deletedAt: at, purgeAfter: at + DELETE_GRACE_MS },
+        }),
+        appendChange(prisma, {
+          meetingId,
+          kind: 'meeting',
+          revision: 0,
+          sha256: null,
+          size: null,
+          deleted: true,
+          deviceId,
+          at,
+        }),
+      ]);
+      log.info(`Meeting deleted: ${meetingId}`);
+      return 'deleted';
+    })
+  );
 }
 
 /**
@@ -220,29 +258,32 @@ export function deleteBlob(
   deps: BlobsDeps,
   scope: string,
   kind: string,
-  deviceId: string | null
+  deviceId: string | null,
+  epoch?: number
 ): Promise<number | null> {
   const { prisma, now } = deps;
-  return withKeyLock(kindKey(scope, kind), async () => {
-    const current = await prisma.blob.findUnique({ where: { scope_kind: { scope, kind } } });
-    if (current === null) return null;
-    await prisma.$transaction([
-      prisma.blob.delete({ where: { scope_kind: { scope, kind } } }),
-      appendChange(prisma, {
-        meetingId: scope === LIBRARY_SCOPE ? null : scope,
-        kind,
-        revision: current.revision,
-        sha256: null,
-        size: null,
-        deleted: true,
-        deviceId,
-        at: now(),
-      }),
-    ]);
-    await releaseBlobFile(deps, current.sha256);
-    log.info(`Blob deleted: ${scope}/${kind} at revision ${current.revision}`);
-    return current.revision;
-  });
+  return withVaultWriter(epoch, () =>
+    withKeyLock(kindKey(scope, kind), async () => {
+      const current = await prisma.blob.findUnique({ where: { scope_kind: { scope, kind } } });
+      if (current === null) return null;
+      await prisma.$transaction([
+        prisma.blob.delete({ where: { scope_kind: { scope, kind } } }),
+        appendChange(prisma, {
+          meetingId: scope === LIBRARY_SCOPE ? null : scope,
+          kind,
+          revision: current.revision,
+          sha256: null,
+          size: null,
+          deleted: true,
+          deviceId,
+          at: now(),
+        }),
+      ]);
+      await releaseBlobFile(deps, current.sha256);
+      log.info(`Blob deleted: ${scope}/${kind} at revision ${current.revision}`);
+      return current.revision;
+    })
+  );
 }
 
 /**

@@ -4,6 +4,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { authenticateDevice } from '../services/device';
 import { verifyAccessToken } from '../services/jwt';
 import type { JwtSecret } from '../services/token';
+import { currentEpoch } from '../services/vault-gate';
 
 export type OwnerAuthDeps = {
   prisma: PrismaClient;
@@ -21,6 +22,9 @@ export type OwnerAuthDeps = {
 export function ownerAuth({ prisma, jwtSecret, now }: OwnerAuthDeps) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      // Recorded before the credential is checked, so a keys-lost reset that
+      // lands anywhere after this point refuses the request's writes.
+      const epoch = currentEpoch();
       const header = req.headers.authorization;
       const bearer = header?.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : '';
 
@@ -38,6 +42,7 @@ export function ownerAuth({ prisma, jwtSecret, now }: OwnerAuthDeps) {
           return;
         }
         req.owner = { via: 'session' };
+        req.vaultEpoch = epoch;
         next();
         return;
       }
@@ -48,6 +53,7 @@ export function ownerAuth({ prisma, jwtSecret, now }: OwnerAuthDeps) {
         return;
       }
       req.owner = { via: 'device', deviceId: device.deviceId };
+      req.vaultEpoch = epoch;
       next();
     } catch (err) {
       next(err);
