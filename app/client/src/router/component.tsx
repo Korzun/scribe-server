@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 
-import { HomePage, LoginPage, RecoverPage, ResetPage } from '~/page';
+import { DashboardPage, LoginPage, RecoverPage, ResetPage } from '~/page';
 
 import * as path from './path-internal';
 import { ProtectedRoute } from './protected-route';
@@ -17,7 +17,7 @@ export const AppRouter = () => {
         </Route>
 
         <Route element={<ProtectedRoute />}>
-          <Route path={path.home()} element={<HomePage />} />
+          <Route path={path.home()} element={<DashboardPage />} />
           <Route path="*" element={<Navigate to={path.home()} replace />} />
         </Route>
       </Routes>
