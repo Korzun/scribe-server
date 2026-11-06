@@ -11,7 +11,7 @@ declare global {
       device?: { id: string };
       /** Set by `ownerAuth`: who is acting as the owner, by device token or browser session. */
       owner?: { via: 'device'; deviceId: string } | { via: 'session' };
-      /** Set by `ownerAuth` (and sign-in): the reset epoch the request started in (services/vault-gate.ts). */
+      /** Set by `ownerAuth`, `deviceAuth` (and sign-in): the reset epoch the request started in (services/vault-gate.ts). */
       vaultEpoch?: number;
     }
   }

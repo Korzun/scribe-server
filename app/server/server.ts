@@ -13,9 +13,11 @@ import { createMeetingsRouter } from './routes/meetings';
 import { createRecoveryRouter } from './routes/recovery';
 import { createSessionRouter } from './routes/session';
 import { createStatusRouter } from './routes/status';
+import { createUploadsRouter } from './routes/uploads';
 import type { BlobStore } from './services/blob-store';
 import type { GarbageCollector } from './services/gc';
 import type { JwtSecret } from './services/token';
+import type { UploadSessions } from './services/upload-session';
 import { VaultResetError } from './services/vault-gate';
 import { AppConfig } from './types';
 import { APP_VERSION } from './utils/app-version';
@@ -31,6 +33,8 @@ export type CreateServerDeps = {
   blobStore: BlobStore;
   /** The collector `POST /library/purge` runs (the same one `startVault` runs hourly). */
   gc: GarbageCollector;
+  /** Resumable chunked uploads (spec §7), the same sessions the collector expires. */
+  uploads: UploadSessions;
   /** Clock in epoch milliseconds; tests inject a fake one, production uses `Date.now`. */
   now?: () => number;
 };
@@ -41,6 +45,7 @@ export function createServer({
   jwtSecret,
   blobStore,
   gc,
+  uploads,
   now = Date.now,
 }: CreateServerDeps): express.Express {
   const server = express();
@@ -56,6 +61,7 @@ export function createServer({
 
   server.use('/api/v1', createLibraryRouter({ prisma, jwtSecret, config, blobStore, gc, now }));
   server.use('/api/v1', createLibraryBlobsRouter({ prisma, jwtSecret, blobStore, now }));
+  server.use('/api/v1', createUploadsRouter({ prisma, uploads, now }));
   server.use('/api/v1', createDevicesRouter({ prisma, jwtSecret, config, now }));
   server.use('/api/v1', createSessionRouter({ prisma, jwtSecret, config, now }));
   server.use('/api/v1', createRecoveryRouter({ prisma, config, now }));

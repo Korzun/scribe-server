@@ -9,6 +9,7 @@ import { createServer } from './server';
 import { createBlobStore } from './services/blob-store';
 import { createGarbageCollector } from './services/gc';
 import { createJwtSecret } from './services/token';
+import { createUploadSessions } from './services/upload-session';
 import { startVault } from './startup';
 import { APP_VERSION } from './utils/app-version';
 
@@ -34,8 +35,14 @@ fs.mkdirSync(config.blobsDir, { recursive: true });
   const jwtSecret = await createJwtSecret(prisma);
 
   const blobStore = createBlobStore({ root: config.blobsDir });
-  const gc = createGarbageCollector({ prisma, blobStore, now: Date.now });
-  const server = createServer({ config, prisma, jwtSecret, blobStore, gc });
+  const uploads = createUploadSessions({
+    prisma,
+    dataDir: config.dataDir,
+    blobStore,
+    now: Date.now,
+  });
+  const gc = createGarbageCollector({ prisma, blobStore, now: Date.now, uploads });
+  const server = createServer({ config, prisma, jwtSecret, blobStore, gc, uploads });
 
   await startVault({ prisma, config, version: APP_VERSION, server, gc });
 })().catch((err) => {

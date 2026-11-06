@@ -159,10 +159,12 @@ export async function libraryStorage(prisma: PrismaClient): Promise<{
 /**
  * Every table the keys-lost reset empties, children first. `settings` is the
  * one table left alone (the signing secret and other instance state are not
- * the library's). A new table that holds library data is one more line here
- * (Task 10 adds `uploads`).
+ * the library's). A new table that holds library data is one more line here.
+ * The wiped uploads' part directories are left for the next sweep
+ * (services/upload-session.ts removes any directory with no row behind it).
  */
 const RESET_TABLES: ReadonlyArray<(db: PrismaClient) => Prisma.PrismaPromise<unknown>> = [
+  (db) => db.upload.deleteMany(),
   (db) => db.change.deleteMany(),
   (db) => db.blob.deleteMany(),
   (db) => db.meeting.deleteMany(),

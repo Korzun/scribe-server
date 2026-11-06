@@ -5,7 +5,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 
 import { isSealed } from '../crypto/seal';
 import { logger } from '../logger';
-import { getBlob, putBlob, type BlobsDeps } from '../services/blobs';
+import { getBlob, putBlob, type BlobsDeps, type PutResult } from '../services/blobs';
 
 const log = logger('BlobRoute');
 
@@ -53,7 +53,21 @@ function parsePrecondition(req: Request): number | null | undefined {
 // oversized body is a clean 413 rather than the generic 500.
 const rawBody = express.raw({ type: 'application/octet-stream', limit: '32mb' });
 export function readRawBody(req: Request, res: Response, next: NextFunction): void {
-  rawBody(req, res, (err?: unknown) => {
+  parseRawBody(rawBody, req, res, next);
+}
+
+/**
+ * Runs an `express.raw` parser and turns its failures into the vault's
+ * answers: 413 for a body over the limit, 400 for any other bad body.
+ * Upload parts (routes/uploads.ts) use it with a per-session limit.
+ */
+export function parseRawBody(
+  parser: ReturnType<typeof express.raw>,
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  parser(req, res, (err?: unknown) => {
     if (err !== undefined && err !== null) {
       const status = (err as { status?: number }).status;
       if (status === 413) {
@@ -115,6 +129,16 @@ export async function handleBlobPut(
     deviceId: req.owner?.via === 'device' ? req.owner.deviceId : null,
     epoch: req.vaultEpoch,
   });
+  sendPutResult(res, result);
+}
+
+/**
+ * The answer to a blob write, shared with upload completion (routes/uploads.ts):
+ * 201 for a first revision, 200 for a later one, 409 with the current
+ * revision, 410 for a deleted meeting. The body echoes the stored hash, which
+ * is what a Mac compares before it deletes its own copy (spec §7).
+ */
+export function sendPutResult(res: Response, result: PutResult): void {
   if (!result.ok) {
     if (result.reason === 'gone') {
       res.status(410).json({ error: 'Meeting deleted' });

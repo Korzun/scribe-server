@@ -11,6 +11,7 @@ import { createServer } from '../server';
 import { createBlobStore, type BlobStore } from '../services/blob-store';
 import { createGarbageCollector, type GarbageCollector } from '../services/gc';
 import { createJwtSecret, type JwtSecret } from '../services/token';
+import { createUploadSessions, type UploadSessions } from '../services/upload-session';
 import type { AppConfig } from '../types';
 
 /** The secret the harness's signing secret starts as. */
@@ -28,6 +29,8 @@ export type Harness = {
   jwtSecret: JwtSecret;
   /** The collector the app's purge route runs, on the fake clock. */
   gc: GarbageCollector;
+  /** The app's upload sessions (parts under `dataDir/uploads`), also expired by `gc`. */
+  uploads: UploadSessions;
   /** Mutable fake clock; every dep that reads time reads this. */
   now: { value: number };
   close(): Promise<void>;
@@ -65,13 +68,15 @@ export async function createHarness(): Promise<Harness> {
 
   const now = { value: 1_700_000_000_000 };
   const blobStore = createBlobStore({ root: blobsDir });
-  const gc = createGarbageCollector({ prisma, blobStore, now: () => now.value });
+  const uploads = createUploadSessions({ prisma, dataDir, blobStore, now: () => now.value });
+  const gc = createGarbageCollector({ prisma, blobStore, now: () => now.value, uploads });
   const app = createServer({
     config,
     prisma,
     jwtSecret,
     blobStore,
     gc,
+    uploads,
     now: () => now.value,
   });
 
@@ -84,6 +89,7 @@ export async function createHarness(): Promise<Harness> {
     blobStore,
     jwtSecret,
     gc,
+    uploads,
     now,
     async close() {
       await prisma.$disconnect();

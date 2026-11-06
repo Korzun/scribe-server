@@ -122,3 +122,27 @@ model Change {
 
   @@map("changes")
 }
+
+// One resumable chunked upload (spec §7): audio is bigger than the 100 MB a
+// Cloudflare Tunnel lets through in one request, so a Mac declares the blob's
+// size and SHA-256 here, sends it in parts to `<dataDir>/uploads/<id>/<n>`,
+// and completes. `ifMatch` is the precondition the Mac chose at the start;
+// `epoch` is the keys-lost reset epoch it began in (services/vault-gate.ts).
+// A completed session keeps its row (with `completedAt`) until it expires.
+model Upload {
+  id             String @id
+  deviceId       String @map("device_id")
+  scope          String
+  kind           String
+  declaredSha256 String @map("declared_sha256")
+  declaredSize   Int    @map("declared_size")
+  partSize       Int    @map("part_size")
+  ifMatch        Int?   @map("if_match")
+  epoch          Int
+  createdAt      Float  @map("created_at")
+  expiresAt      Float  @map("expires_at")
+  completedAt    Float? @map("completed_at")
+
+  @@index([expiresAt])
+  @@map("uploads")
+}
