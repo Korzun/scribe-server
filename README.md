@@ -183,6 +183,33 @@ Open the admin page through the client at `http://localhost:5173/`. `localhost` 
 a secure context, so WebCrypto works there; a LAN address over plain `http://`
 will not (see "Usage").
 
+### Trying it without Scribe
+
+`npm run vault` is a small command-line client that does what the Mac app does —
+creates or joins the library, seals files into meeting blobs, opens them back out —
+so you can prove a running vault (`make run`, `make dev`, or a real add-on with
+`--url`) before Scribe talks to it:
+
+```bash
+make run
+export SCRIBE_PASSWORD='a long password'
+npm run vault -- create --setup-code dev-setup-code   # prints the Secret Key and recovery codes once
+export SCRIBE_SECRET_KEY='A1-…'                       # the Secret Key it printed
+
+U=$(uuidgen | tr A-Z a-z)
+npm run vault -- put "$U" manifest some.json          # seals, then uploads (in parts above 16 MiB)
+npm run vault -- get "$U" manifest out.json           # downloads, then opens
+cmp some.json out.json                                # identical
+npm run vault -- changes                              # the change log, one line per change
+make stop
+```
+
+`enrol`, `devices` and `delete <meetingId>` are there too; `npm run vault -- --help`
+lists everything. The device token is cached in `~/.scribe-vault-cli.json` (mode
+`0600`) with the vault's URL and the library and device ids; the password and the
+Secret Key are only ever read from the environment, never written. Delete the file to
+forget the device.
+
 ### Environment variables (dev / bare-metal)
 
 When not running under Home Assistant, configuration falls back to environment
