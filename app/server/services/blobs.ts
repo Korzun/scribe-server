@@ -158,18 +158,41 @@ export function releaseBlobFile(
   });
 }
 
-/** The current revision of one blob and a stream of its bytes, or `null` when there is none. */
+/** A stored blob's current revision, with a way to read its bytes. */
+export type StoredBlob = {
+  revision: number;
+  sha256: string;
+  size: number;
+  /**
+   * Opens the file and resolves once it is open, so a missing file rejects
+   * (ENOENT) *before* the caller has sent any header and can still answer a
+   * clean 404. Nothing is opened until this is called: a 304 never touches
+   * the file, so it cannot leak a descriptor or raise an unhandled error.
+   * The caller owns the stream and must destroy it if it stops reading.
+   */
+  openStream(): Promise<Readable>;
+};
+
+/** The current revision of one blob, or `null` when there is none. */
 export async function getBlob(
   deps: Pick<BlobsDeps, 'prisma' | 'blobStore'>,
   scope: string,
   kind: string
-): Promise<{ revision: number; sha256: string; size: number; stream: Readable } | null> {
+): Promise<StoredBlob | null> {
   const row = await deps.prisma.blob.findUnique({ where: { scope_kind: { scope, kind } } });
   if (row === null) return null;
   return {
     revision: row.revision,
     sha256: row.sha256,
     size: row.size,
-    stream: deps.blobStore.createReadStream(row.sha256),
+    openStream: () =>
+      new Promise<Readable>((resolve, reject) => {
+        const stream = deps.blobStore.createReadStream(row.sha256);
+        stream.once('error', reject);
+        stream.once('open', () => {
+          stream.off('error', reject);
+          resolve(stream);
+        });
+      }),
   };
 }
