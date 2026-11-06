@@ -79,6 +79,18 @@ describe('seal', () => {
     );
     expect(sealed.toString('hex')).toBe(v.blob.sealed);
     expect(open(libraryKey, sealed, v.blob.aad).toString('hex')).toBe(v.inputs.plaintext);
+
+    // A library-scope blob whose kind contains a slash.
+    const libraryAad = blobAad(v.inputs.libraryId, 'library', `voice/${v.inputs.voiceId}`, 1);
+    expect(libraryAad).toBe(v.libraryBlob.aad);
+    const library = seal(
+      libraryKey,
+      Buffer.from(v.inputs.plaintext, 'hex'),
+      libraryAad,
+      Buffer.from(v.inputs.nonce, 'hex')
+    );
+    expect(library.toString('hex')).toBe(v.libraryBlob.sealed);
+    expect(open(libraryKey, library, libraryAad).toString('hex')).toBe(v.inputs.plaintext);
   });
 
   it('reproduces the vector aad strings and key wraps', () => {

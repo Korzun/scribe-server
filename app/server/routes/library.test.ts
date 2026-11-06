@@ -18,7 +18,11 @@ import {
   type Owner,
 } from '../test-support/vault-client';
 
-vi.mock('../logger');
+// One `warn` spy shared by every logger, so a test can read what was warned.
+const warn = vi.hoisted(() => vi.fn());
+vi.mock('../logger', () => ({
+  logger: () => ({ debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() }),
+}));
 
 let h: Harness;
 let client: VaultClient;
@@ -73,7 +77,7 @@ describe('POST /api/v1/library', () => {
   });
 
   it('a setup code of a different length is simply wrong', async () => {
-    writeSetupCode(h.dataDir, 'short');
+    writeSetupCode(h.dataDir, 'the-real-code');
 
     const res = await client.createLibrary(cheapBody('a-much-longer-guess'));
 
@@ -81,9 +85,34 @@ describe('POST /api/v1/library', () => {
     expect(res.body).toEqual({ error: 'Wrong setup code' });
   });
 
+  it('a configured code of 11 characters is treated as unset: 403 Setup code required, and a warning without the code', async () => {
+    writeSetupCode(h.dataDir, 'eleven-char');
+    warn.mockClear();
+
+    const res = await client.createLibrary(cheapBody('eleven-char'));
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Setup code required' });
+    expect(await h.prisma.library.count()).toBe(0);
+    const lines = warn.mock.calls.map((c) => String(c[0]));
+    expect(
+      lines.filter(
+        (l) =>
+          l ===
+          'setup_code is shorter than 12 characters and is ignored; set a longer one in the add-on configuration'
+      )
+    ).toHaveLength(1);
+    expect(lines.join('\n')).not.toContain('eleven-char');
+  });
+
+  it('a configured code of exactly 12 characters works', async () => {
+    writeSetupCode(h.dataDir, 'twelve-chars');
+    expect((await client.createLibrary(cheapBody('twelve-chars'))).status).toBe(201);
+  });
+
   it('a malformed body is 400', async () => {
-    writeSetupCode(h.dataDir, 'code');
-    const body = cheapBody('code');
+    writeSetupCode(h.dataDir, 'test-setup-code');
+    const body = cheapBody('test-setup-code');
 
     const missing = await client.createLibrary({ ...body, device: undefined });
     const notTen = await client.createLibrary({
@@ -136,11 +165,11 @@ describe('POST /api/v1/library', () => {
   });
 
   it('the setup code is re-read: changing options.json between two attempts changes the outcome', async () => {
-    writeSetupCode(h.dataDir, 'first-code');
-    const body = cheapBody('second-code');
+    writeSetupCode(h.dataDir, 'first-setup-code');
+    const body = cheapBody('second-setup-code');
     expect((await client.createLibrary(body)).status).toBe(403);
 
-    writeSetupCode(h.dataDir, 'second-code');
+    writeSetupCode(h.dataDir, 'second-setup-code');
     const res = await client.createLibrary(body);
 
     expect(res.status).toBe(201);
@@ -193,8 +222,8 @@ describe('account operations', () => {
   beforeAll(async () => {
     ah = await createHarness();
     c = new VaultClient(ah.app);
-    writeSetupCode(ah.dataDir, 'code');
-    owner = await createOwner(c, { setupCode: 'code' });
+    writeSetupCode(ah.dataDir, 'test-setup-code');
+    owner = await createOwner(c, { setupCode: 'test-setup-code' });
   }, 60_000);
   afterAll(async () => {
     await ah.close();
@@ -367,7 +396,7 @@ async function cheapLibrary(code: string): Promise<string> {
 
 describe('storage and purge', () => {
   it('storage counts bytes, blobs, meetings and deleted meetings', async () => {
-    const token = await cheapLibrary('code');
+    const token = await cheapLibrary('test-setup-code');
     const deps: BlobsDeps = { prisma: h.prisma, blobStore: h.blobStore, now: () => h.now.value };
     const live = crypto.randomUUID();
     const deleted = crypto.randomUUID();
@@ -399,8 +428,33 @@ describe('storage and purge', () => {
 });
 
 describe('DELETE /api/v1/library (keys lost)', () => {
+  it('a configured code of 11 characters is treated as unset (403, library kept); 12 characters works', async () => {
+    await cheapLibrary('the-reset-code');
+
+    writeSetupCode(h.dataDir, 'eleven-char');
+    warn.mockClear();
+    const short = await client.deleteLibrary({ setupCode: 'eleven-char', confirm: 'DELETE' });
+    expect(short.status).toBe(403);
+    expect(short.body).toEqual({ error: 'Setup code required' });
+    expect(await h.prisma.library.count()).toBe(1);
+    const lines = warn.mock.calls.map((c) => String(c[0]));
+    expect(
+      lines.filter(
+        (l) =>
+          l ===
+          'setup_code is shorter than 12 characters and is ignored; set a longer one in the add-on configuration'
+      )
+    ).toHaveLength(1);
+    expect(lines.join('\n')).not.toContain('eleven-char');
+
+    writeSetupCode(h.dataDir, 'twelve-chars');
+    const ok = await client.deleteLibrary({ setupCode: 'twelve-chars', confirm: 'DELETE' });
+    expect(ok.status).toBe(204);
+    expect(await h.prisma.library.count()).toBe(0);
+  });
+
   it('keys-lost deletion needs the live setup code and the word DELETE, then status says no library', async () => {
-    const token = await cheapLibrary('the-code');
+    const token = await cheapLibrary('the-reset-code');
     const deps: BlobsDeps = { prisma: h.prisma, blobStore: h.blobStore, now: () => h.now.value };
     const meeting = crypto.randomUUID();
     await write(deps, meeting, 'manifest', 'a meeting');
@@ -410,11 +464,11 @@ describe('DELETE /api/v1/library (keys lost)', () => {
     const settingsBefore = await h.prisma.setting.findMany({ orderBy: { key: 'asc' } });
 
     writeSetupCode(h.dataDir, null);
-    const unset = await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' });
+    const unset = await client.deleteLibrary({ setupCode: 'the-reset-code', confirm: 'DELETE' });
     expect(unset.status).toBe(403);
     expect(unset.body).toEqual({ error: 'Setup code required' });
 
-    writeSetupCode(h.dataDir, 'the-code');
+    writeSetupCode(h.dataDir, 'the-reset-code');
     const wrong = await client.deleteLibrary({ setupCode: 'not-the-code', confirm: 'DELETE' });
     expect(wrong.status).toBe(403);
     expect(wrong.body).toEqual({ error: 'Wrong setup code' });
@@ -423,8 +477,8 @@ describe('DELETE /api/v1/library (keys lost)', () => {
     const HOUR = 60 * 60 * 1000;
     h.now.value += HOUR;
     for (const body of [
-      { setupCode: 'the-code', confirm: 'delete' },
-      { setupCode: 'the-code' },
+      { setupCode: 'the-reset-code', confirm: 'delete' },
+      { setupCode: 'the-reset-code' },
       { confirm: 'DELETE' },
       {},
     ]) {
@@ -436,7 +490,7 @@ describe('DELETE /api/v1/library (keys lost)', () => {
     expect(await h.prisma.blob.count()).toBe(2);
 
     h.now.value += HOUR;
-    const res = await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' });
+    const res = await client.deleteLibrary({ setupCode: 'the-reset-code', confirm: 'DELETE' });
     expect(res.status).toBe(204);
 
     expect((await client.status()).body.libraryExists).toBe(false);
@@ -466,18 +520,18 @@ describe('DELETE /api/v1/library (keys lost)', () => {
   });
 
   it('the reset rotates the signing secret: an unexpired browser access token is 401 afterwards', async () => {
-    writeSetupCode(h.dataDir, 'the-code');
-    const body = cheapBody('the-code');
+    writeSetupCode(h.dataDir, 'the-reset-code');
+    const body = cheapBody('the-reset-code');
     expect((await client.createLibrary(body)).status).toBe(201);
     const browser = new VaultClient(h.app);
     expect((await browser.postSession({ authKey: body.authKey })).status).toBe(200);
     const accessToken = browser.asSession();
     expect((await client.devices(accessToken)).status).toBe(200);
 
-    expect((await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' })).status).toBe(
-      204
-    );
-    await cheapLibrary('the-code');
+    expect(
+      (await client.deleteLibrary({ setupCode: 'the-reset-code', confirm: 'DELETE' })).status
+    ).toBe(204);
+    await cheapLibrary('the-reset-code');
 
     // The clock has not moved: the token's `exp` is still ahead, only its key is gone.
     const after = await client.devices(accessToken);
@@ -486,12 +540,12 @@ describe('DELETE /api/v1/library (keys lost)', () => {
   });
 
   it('after deletion a new library can be created', async () => {
-    await cheapLibrary('the-code');
-    expect((await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' })).status).toBe(
-      204
-    );
+    await cheapLibrary('the-reset-code');
+    expect(
+      (await client.deleteLibrary({ setupCode: 'the-reset-code', confirm: 'DELETE' })).status
+    ).toBe(204);
 
-    const token = await cheapLibrary('the-code');
+    const token = await cheapLibrary('the-reset-code');
     expect((await client.status()).body.libraryExists).toBe(true);
     const info = await client.libraryInfo(token);
     expect(info.status).toBe(200);
@@ -504,7 +558,7 @@ describe('DELETE /api/v1/library (keys lost)', () => {
   });
 
   it('is rate limited to 5 per hour per IP', async () => {
-    writeSetupCode(h.dataDir, 'the-code');
+    writeSetupCode(h.dataDir, 'the-reset-code');
     for (let i = 0; i < 5; i++) {
       expect((await client.deleteLibrary({ setupCode: 'nope', confirm: 'DELETE' })).status).toBe(
         403
@@ -522,7 +576,7 @@ describe('the keys-lost reset against live writers', () => {
     seal(crypto.randomBytes(32), Buffer.from(text), blobAad('x', 'y', 'z', 1));
 
   it('a PUT parked mid-write while the reset runs leaves nothing in the next library', async () => {
-    const token = await cheapLibrary('the-code');
+    const token = await cheapLibrary('the-reset-code');
     const meeting = crypto.randomUUID();
 
     let release!: () => void;
@@ -544,7 +598,7 @@ describe('the keys-lost reset against live writers', () => {
         ifMatch: null,
       });
       await stored;
-      const resetting = client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' });
+      const resetting = client.deleteLibrary({ setupCode: 'the-reset-code', confirm: 'DELETE' });
       await new Promise((resolve) => setTimeout(resolve, 50));
       release();
       const [, reset] = await Promise.all([putting, resetting]);
@@ -553,7 +607,7 @@ describe('the keys-lost reset against live writers', () => {
       spy.mockRestore();
     }
 
-    await cheapLibrary('the-code');
+    await cheapLibrary('the-reset-code');
     expect(await h.prisma.change.count()).toBe(0);
     expect(await h.prisma.meeting.count()).toBe(0);
     expect(await h.prisma.blob.count()).toBe(0);
@@ -561,7 +615,7 @@ describe('the keys-lost reset against live writers', () => {
   });
 
   it('a PUT authenticated before the reset but finishing its body after a new library exists is 401', async () => {
-    const token = await cheapLibrary('the-code');
+    const token = await cheapLibrary('the-reset-code');
     const bytes = body('late body');
     const server = h.app.listen(0);
     try {
@@ -594,9 +648,10 @@ describe('the keys-lost reset against live writers', () => {
         setTimeout(() => {
           void (async () => {
             expect(
-              (await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' })).status
+              (await client.deleteLibrary({ setupCode: 'the-reset-code', confirm: 'DELETE' }))
+                .status
             ).toBe(204);
-            await cheapLibrary('the-code');
+            await cheapLibrary('the-reset-code');
             req.end(bytes.subarray(4));
           })().catch(reject);
         }, 100);
@@ -615,12 +670,12 @@ describe('the keys-lost reset against live writers', () => {
 
 describe('reset ordering', () => {
   it('a rotation that fails after the wipe answers 500, and the wipe stands', async () => {
-    await cheapLibrary('the-code');
+    await cheapLibrary('the-reset-code');
     const rotate = vi
       .spyOn(h.jwtSecret, 'rotate')
       .mockRejectedValue(Object.assign(new Error('secret=deadbeef'), { code: 'P2000' }));
 
-    const res = await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' });
+    const res = await client.deleteLibrary({ setupCode: 'the-reset-code', confirm: 'DELETE' });
 
     expect(rotate).toHaveBeenCalledTimes(1);
     expect(res.status).toBe(500);

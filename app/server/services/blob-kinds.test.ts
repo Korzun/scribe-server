@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  isCanonicalUuid,
   isMeetingKind,
-  isUuid,
   libraryKindName,
   MEETING_KINDS,
-  normalizeUuid,
   parseLibraryKind,
 } from './blob-kinds';
 
@@ -25,12 +24,13 @@ describe('blob kinds', () => {
     expect(parseLibraryKind(`voice/${VOICE}`)).toEqual({ kind: 'voice', voiceId: VOICE });
   });
 
-  it('accepts a voice id in any case and hands back the lowercase one', () => {
-    // Swift's `UUID().uuidString` is uppercase; the vault keys on lowercase.
-    expect(parseLibraryKind(`voice/${VOICE.toUpperCase()}`)).toEqual({
-      kind: 'voice',
-      voiceId: VOICE,
-    });
+  it('refuses a voice id that is not canonical lowercase, rather than normalising it', () => {
+    // Swift's `UUID().uuidString` is uppercase; the client must lowercase it,
+    // because the AAD it seals under is built from the id it sends.
+    expect(parseLibraryKind(`voice/${VOICE.toUpperCase()}`)).toBeNull();
+    expect(
+      parseLibraryKind(`voice/${VOICE.slice(0, 4).toUpperCase()}${VOICE.slice(4)}`)
+    ).toBeNull();
     expect(libraryKindName({ kind: 'voice', voiceId: VOICE })).toBe(`voice/${VOICE}`);
     expect(libraryKindName({ kind: 'tag-list' })).toBe('tag-list');
   });
@@ -52,18 +52,19 @@ describe('blob kinds', () => {
     }
   });
 
-  it('isUuid accepts only the canonical lowercase form', () => {
-    expect(isUuid(VOICE)).toBe(true);
-    expect(isUuid(VOICE.toUpperCase())).toBe(false);
-    expect(isUuid(VOICE.replace(/-/g, ''))).toBe(false);
-    expect(isUuid(`${VOICE}\n`)).toBe(false);
-  });
-
-  it('normalizeUuid lowercases any-case UUIDs and refuses everything else', () => {
-    expect(normalizeUuid(VOICE)).toBe(VOICE);
-    expect(normalizeUuid(VOICE.toUpperCase())).toBe(VOICE);
-    for (const s of ['', 'not-a-uuid', VOICE.replace(/-/g, ''), `${VOICE}\n`, `../${VOICE}`]) {
-      expect(normalizeUuid(s)).toBeNull();
+  it('isCanonicalUuid accepts only the canonical lowercase 8-4-4-4-12 form', () => {
+    expect(isCanonicalUuid(VOICE)).toBe(true);
+    for (const s of [
+      '',
+      'not-a-uuid',
+      VOICE.toUpperCase(),
+      VOICE.replace(/-/g, ''),
+      `${VOICE}\n`,
+      ` ${VOICE}`,
+      `{${VOICE}}`,
+      `../${VOICE}`,
+    ]) {
+      expect(isCanonicalUuid(s)).toBe(false);
     }
   });
 });

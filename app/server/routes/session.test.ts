@@ -16,8 +16,11 @@ let h: Harness;
 let owner: Owner;
 beforeAll(async () => {
   h = await createHarness();
-  writeSetupCode(h.dataDir, 'code');
-  owner = await createOwner(new VaultClient(h.app), { setupCode: 'code', name: 'First Mac' });
+  writeSetupCode(h.dataDir, 'test-setup-code');
+  owner = await createOwner(new VaultClient(h.app), {
+    setupCode: 'test-setup-code',
+    name: 'First Mac',
+  });
 }, 60_000);
 afterAll(async () => {
   await h.close();

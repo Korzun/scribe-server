@@ -68,11 +68,17 @@ describe('seal', () => {
     expect(keyWrapAad(v.inputs.libraryId, 'password')).toBe(v.wraps.passwordAad);
     expect(keyWrapAad(v.inputs.libraryId, 'recovery')).toBe(v.wraps.recoveryAad);
     expect(blobAad(v.inputs.libraryId, v.inputs.meetingId, 'transcript', 1)).toBe(v.blob.aad);
+    expect(blobAad(v.inputs.libraryId, 'library', `voice/${v.inputs.voiceId}`, 1)).toBe(
+      v.libraryBlob.aad
+    );
   });
 
   it('opens the vector blob and the vector password wrap', async () => {
     const libraryKey = fromHex(v.inputs.libraryKey);
     expect(toHex(await open(libraryKey, fromHex(v.blob.sealed), v.blob.aad))).toBe(
+      v.inputs.plaintext
+    );
+    expect(toHex(await open(libraryKey, fromHex(v.libraryBlob.sealed), v.libraryBlob.aad))).toBe(
       v.inputs.plaintext
     );
     for (const slot of ['password', 'recovery'] as const) {
@@ -90,6 +96,13 @@ describe('seal', () => {
     const nonce = fromHex(v.inputs.nonce);
     const sealed = await seal(libraryKey, fromHex(v.inputs.plaintext), v.blob.aad, nonce);
     expect(toHex(sealed)).toBe(v.blob.sealed);
+    const library = await seal(
+      libraryKey,
+      fromHex(v.inputs.plaintext),
+      blobAad(v.inputs.libraryId, 'library', `voice/${v.inputs.voiceId}`, 1),
+      nonce
+    );
+    expect(toHex(library)).toBe(v.libraryBlob.sealed);
     for (const slot of ['password', 'recovery'] as const) {
       const wrap = await seal(fromHex(v[slot].kek), libraryKey, v.wraps[`${slot}Aad`], nonce);
       expect(toHex(wrap), slot).toBe(v.wraps[slot]);

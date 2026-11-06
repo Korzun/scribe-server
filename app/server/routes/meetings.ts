@@ -2,7 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { Router, type Request } from 'express';
 
 import { ownerAuth } from '../middleware/owner-auth';
-import { isMeetingKind, normalizeUuid } from '../services/blob-kinds';
+import { isCanonicalUuid, isMeetingKind } from '../services/blob-kinds';
 import type { BlobStore } from '../services/blob-store';
 import { tombstoneMeeting } from '../services/blobs';
 import type { JwtSecret } from '../services/token';
@@ -18,8 +18,11 @@ export type MeetingsRouterDeps = {
 const DEFAULT_MEETINGS_LIMIT = 100;
 const MAX_MEETINGS_LIMIT = 500;
 
-/** The meeting id from the path, lowercased (any case is accepted), or `null` when it is not a UUID. */
-const meetingId = (req: Request): string | null => normalizeUuid(String(req.params.id));
+/** The meeting id from the path, or `null` when it is not a canonical lowercase UUID. */
+const meetingId = (req: Request): string | null => {
+  const id = String(req.params.id);
+  return isCanonicalUuid(id) ? id : null;
+};
 
 /** A positive integer query parameter, `fallback` when absent, `null` when malformed. */
 function parseLimit(raw: unknown, fallback: number, max: number): number | null {
@@ -64,7 +67,7 @@ export function createMeetingsRouter({
       const id = meetingId(req);
       const kind = String(req.params.kind);
       if (id === null || !isMeetingKind(kind)) {
-        res.status(404).json({ error: 'Not found' });
+        res.status(400).json({ error: 'Invalid request' });
         return;
       }
       // A tombstoned meeting's blobs may still be on disk during the grace
@@ -123,8 +126,8 @@ export function createMeetingsRouter({
       const after =
         rawAfter === undefined
           ? undefined
-          : typeof rawAfter === 'string'
-            ? normalizeUuid(rawAfter)
+          : typeof rawAfter === 'string' && isCanonicalUuid(rawAfter)
+            ? rawAfter
             : null;
       const limit = parseLimit(req.query.limit, DEFAULT_MEETINGS_LIMIT, MAX_MEETINGS_LIMIT);
       if (limit === null || after === null) {
@@ -149,7 +152,11 @@ export function createMeetingsRouter({
   router.get('/meetings/:id', auth, async (req, res, next) => {
     try {
       const id = meetingId(req);
-      const meeting = id === null ? null : await prisma.meeting.findUnique({ where: { id } });
+      if (id === null) {
+        res.status(400).json({ error: 'Invalid request' });
+        return;
+      }
+      const meeting = await prisma.meeting.findUnique({ where: { id } });
       if (meeting === null || meeting.deletedAt !== null) {
         res.status(404).json({ error: 'Not found' });
         return;

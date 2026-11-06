@@ -51,6 +51,9 @@ function seal(key, plaintext, aad, nonce) {
   return Buffer.concat([Buffer.from('SCRB', 'ascii'), Buffer.from([1]), nonce, ct, cipher.getAuthTag()]);
 }
 
+// A password's secret bytes: NFC-normalised, then UTF-8, nothing trimmed.
+const passwordBytes = (password) => Buffer.from(password.normalize('NFC'), 'utf8');
+
 const group = (text, sizes) => {
   let at = 0;
   return sizes.map((n) => text.slice(at, (at += n))).join('-');
@@ -58,21 +61,31 @@ const group = (text, sizes) => {
 
 export function generate() {
   const password = 'correct horse battery staple';
+  // "café" spelled two ways: precomposed U+00E9 (NFC) and e + U+0301 (NFD).
+  const unicodePasswordNfc = 'caf\u00e9';
+  const unicodePasswordNfd = 'cafe\u0301';
   const secretKey = Buffer.from('00112233445566778899aabbccddeeff', 'hex');
   const passwordSalt = range(0x01, 0x10);
   const recoverySalt = range(0x11, 0x20);
   const recoveryCode = range(0x21, 0x2a);
   const libraryId = '3f2b1c4e-9d8a-4f6b-8c7d-5e4f3a2b1c0d';
   const meetingId = '7a1e5b3c-2d4f-4a6b-9c8d-0e1f2a3b4c5d';
+  const voiceId = 'c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f';
   const libraryKey = range(0x40, 0x5f);
   const nonce = range(0x60, 0x6b);
   const plaintext = range(0x00, 0x3f);
 
-  const pw = derive(Buffer.from(password, 'utf8'), secretKey, passwordSalt);
+  const pw = derive(passwordBytes(password), secretKey, passwordSalt);
+  const uni = derive(passwordBytes(unicodePasswordNfd), secretKey, passwordSalt);
+  const uniNfc = derive(passwordBytes(unicodePasswordNfc), secretKey, passwordSalt);
+  if (!uni.authKey.equals(uniNfc.authKey) || !uni.kek.equals(uniNfc.kek)) {
+    throw new Error('NFC and NFD spellings must derive the same keys');
+  }
   const rec = derive(recoveryCode, secretKey, recoverySalt);
   const passwordAad = `${libraryId}/keys/password`;
   const recoveryAad = `${libraryId}/keys/recovery`;
   const blobAad = `${libraryId}/${meetingId}/transcript/1`;
+  const libraryBlobAad = `${libraryId}/library/voice/${voiceId}/1`;
   const keys = (d) => ({
     kPw: hex(d.kPw),
     kSk: hex(d.kSk),
@@ -86,28 +99,38 @@ export function generate() {
     iterations: ITERATIONS,
     notes: [
       'All binary values are lowercase hex unless noted. Strings are UTF-8.',
-      'secret is the UTF-8 bytes of the password (password block) or the raw 10 recovery-code bytes (recovery block).',
+      'secret is the UTF-8 bytes of the password (password and unicode blocks) or the raw 10 recovery-code bytes (recovery block).',
+      'Passwords are normalised to Unicode NFC, then UTF-8 encoded; nothing is trimmed. The unicode block derives from inputs.unicodePasswordNfd and equals the derivation from inputs.unicodePasswordNfc (secret = inputs.unicodePasswordUtf8).',
       'kPw = PBKDF2-HMAC-SHA256(secret, salt, 650000 iterations, 32 bytes).',
       'kSk = HKDF-SHA256(ikm = secretKey, salt = salt, info = "scribe/v1/secret-key", 32 bytes).',
       'auk = kPw XOR kSk.',
-      'kek = HKDF-SHA256(ikm = auk, salt = ZERO-LENGTH (empty, not 32 zero bytes), info = "scribe/v1/kek", 32 bytes).',
-      'authKey = HKDF-SHA256(ikm = auk, salt = ZERO-LENGTH (empty, not 32 zero bytes), info = "scribe/v1/auth", 32 bytes).',
+      'kek = HKDF-SHA256(ikm = auk, salt = zero-length, info = "scribe/v1/kek", 32 bytes).',
+      'authKey = HKDF-SHA256(ikm = auk, salt = zero-length, info = "scribe/v1/auth", 32 bytes).',
+      'The HKDF salt for kek and authKey is zero-length, which for HMAC-SHA256 is equivalent to 32 zero bytes per RFC 5869.',
       'Sealed blob = "SCRB" (ASCII) | 0x01 | 12-byte nonce | AES-256-GCM ciphertext | 16-byte tag. AAD is a UTF-8 string.',
       'wraps.password = seal(password.kek, libraryKey, passwordAad, nonce); wraps.recovery = seal(recovery.kek, libraryKey, recoveryAad, nonce).',
       'Key-wrap AAD = "<libraryId>/keys/<slot>" with slot "password" or "recovery".',
       'Blob AAD = "<libraryId>/<scope>/<kind>/<revision>"; scope is a meeting UUID or "library". blob.sealed = seal(libraryKey, plaintext, blob.aad, nonce).',
+      'A library kind may contain a slash: libraryBlob.aad = "<libraryId>/library/voice/<voiceId>/1" and libraryBlob.sealed = seal(libraryKey, plaintext, libraryBlob.aad, nonce).',
+      'UUIDs in AADs and in every API path are canonical lowercase 8-4-4-4-12 hex; the server rejects anything else.',
+      'libraryId is used exactly as the server returns it.',
       'Secret Key text = "A1-" + RFC 4648 base32 (uppercase, no padding) of the 16 bytes, 26 chars in groups 5-5-5-5-6 joined by "-"; the 2 padding bits of the last char must be zero.',
       'Recovery code text = RFC 4648 base32 of the 10 bytes, 16 chars in groups 4-4-4-4 joined by "-".',
+      'The base32 alphabet is RFC 4648 (A-Z2-7) with no input aliases.',
       'The fixed nonce is reused across vectors for determinism only; real use draws a fresh random nonce per seal.',
     ],
     inputs: {
       password,
+      unicodePasswordNfc,
+      unicodePasswordNfd,
+      unicodePasswordUtf8: hex(passwordBytes(unicodePasswordNfd)),
       secretKey: hex(secretKey),
       passwordSalt: hex(passwordSalt),
       recoverySalt: hex(recoverySalt),
       recoveryCode: hex(recoveryCode),
       libraryId,
       meetingId,
+      voiceId,
       libraryKey: hex(libraryKey),
       nonce: hex(nonce),
       plaintext: hex(plaintext),
@@ -117,6 +140,7 @@ export function generate() {
       recoveryCode: group(base32(recoveryCode), [4, 4, 4, 4]),
     },
     password: keys(pw),
+    unicode: keys(uni),
     recovery: keys(rec),
     wraps: {
       passwordAad,
@@ -125,6 +149,10 @@ export function generate() {
       recovery: hex(seal(rec.kek, libraryKey, recoveryAad, nonce)),
     },
     blob: { aad: blobAad, sealed: hex(seal(libraryKey, plaintext, blobAad, nonce)) },
+    libraryBlob: {
+      aad: libraryBlobAad,
+      sealed: hex(seal(libraryKey, plaintext, libraryBlobAad, nonce)),
+    },
   };
 }
 

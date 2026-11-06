@@ -1,12 +1,12 @@
 import { api, type ApiResult } from './api';
-import { fromBase64, toBase64, utf8 } from './bytes';
+import { fromBase64, toBase64 } from './bytes';
 import {
   formatRecoveryCode,
   generateRecoveryCode,
   parseRecoveryCode,
   parseSecretKey,
 } from './codes';
-import { deriveAccountKeys } from './kdf';
+import { deriveAccountKeys, passwordBytes } from './kdf';
 import { keyWrapAad, open, seal, SealError } from './seal';
 
 /**
@@ -58,7 +58,7 @@ async function unlock(password: string, secretKey: Uint8Array): Promise<ApiResul
   const salts = await api<Salts>('/api/v1/library/salts');
   if (!salts.ok) return salts;
   const { kek, authKey } = await deriveAccountKeys({
-    secret: utf8(password),
+    secret: passwordBytes(password),
     secretKey,
     salt: fromBase64(salts.body.passwordSalt),
   });
@@ -81,7 +81,11 @@ async function passwordMaterial(
   secretKey: Uint8Array
 ): Promise<PasswordMaterial> {
   const salt = newSalt();
-  const { kek, authKey } = await deriveAccountKeys({ secret: utf8(newPassword), secretKey, salt });
+  const { kek, authKey } = await deriveAccountKeys({
+    secret: passwordBytes(newPassword),
+    secretKey,
+    salt,
+  });
   const wrap = await seal(kek, libraryKey, keyWrapAad(libraryId, 'password'));
   return {
     newPasswordSalt: toBase64(salt),
