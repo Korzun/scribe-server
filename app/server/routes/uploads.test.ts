@@ -413,6 +413,7 @@ describe('a keys-lost reset', () => {
     expect((await rc.putPart(first.deviceToken, id, 0, bytes)).status).toBe(204);
 
     expect((await rc.deleteLibrary({ setupCode: 'code', confirm: 'DELETE' })).status).toBe(204);
+    expect((await r.prisma.setting.findUnique({ where: { key: 'reset_epoch' } }))?.value).toBe('1');
     const second = await createOwner(rc, { setupCode: 'code' });
 
     expect((await rc.completeUpload(first.deviceToken, id)).status).toBe(401);

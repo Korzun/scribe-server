@@ -22,6 +22,12 @@
  * presents an older one is refused with `VaultResetError` (a 401) before it
  * touches anything. Callers with no request behind them pass `undefined`.
  *
+ * The epoch outlives the process: it is kept in `settings.reset_epoch`
+ * (services/library.ts), read at boot into `initEpoch` before the server
+ * listens, and written by the reset before the in-memory value moves. Things
+ * that live across a restart (upload sessions, spec §7) record it and compare
+ * against it later, so it must mean the same library after a reboot.
+ *
  * Lock order: the gate is always taken first, before any `keyed-lock` key.
  * In-process is enough, for the same reason as keyed-lock.ts: one process.
  */
@@ -94,13 +100,38 @@ export async function withVaultWriter<T>(
   }
 }
 
-/** Runs `fn` (the reset) holding the gate exclusive, and bumps the epoch when it ends, however it ends. */
-export async function withVaultReset<T>(fn: () => Promise<T>): Promise<T> {
+/**
+ * Sets the epoch the process starts from: the persisted one, read at boot.
+ * Called once, before the server accepts a request.
+ */
+export function initEpoch(n: number): void {
+  if (!Number.isSafeInteger(n) || n < 0) throw new Error('vault-gate: bad epoch');
+  epoch = n;
+}
+
+/**
+ * Runs `fn` (the reset) holding the gate exclusive, and bumps the epoch when
+ * it ends, however it ends. `persist` stores the next epoch first and the
+ * in-memory value moves after it (the same direction as the signing-secret
+ * rotation): a crash in between leaves the stored epoch ahead, which only
+ * refuses more, never less. The memory bump happens even if `persist`
+ * throws, so this process still refuses every request of the old library;
+ * the error then propagates to the caller.
+ */
+export async function withVaultReset<T>(
+  fn: () => Promise<T>,
+  persist?: (next: number) => Promise<void>
+): Promise<T> {
   await acquire(true);
   try {
     return await fn();
   } finally {
-    epoch += 1;
-    release(true);
+    const next = epoch + 1;
+    try {
+      if (persist !== undefined) await persist(next);
+    } finally {
+      epoch = next;
+      release(true);
+    }
   }
 }

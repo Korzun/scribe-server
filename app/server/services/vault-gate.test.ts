@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { currentEpoch, VaultResetError, withVaultReset, withVaultWriter } from './vault-gate';
+import {
+  currentEpoch,
+  initEpoch,
+  VaultResetError,
+  withVaultReset,
+  withVaultWriter,
+} from './vault-gate';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 10));
 
@@ -52,5 +58,35 @@ describe('vault gate', () => {
     );
     await expect(withVaultReset(() => Promise.reject(new Error('y')))).rejects.toThrow('y');
     await expect(withVaultWriter(currentEpoch(), async () => 1)).resolves.toBe(1);
+  });
+  it('starts from the epoch it is given, and refuses a nonsense one', () => {
+    initEpoch(7);
+    expect(currentEpoch()).toBe(7);
+    expect(() => initEpoch(-1)).toThrow();
+    expect(() => initEpoch(1.5)).toThrow();
+    expect(currentEpoch()).toBe(7);
+  });
+
+  it('a reset persists the next epoch before the in-memory one moves, and moves it even if persisting fails', async () => {
+    initEpoch(3);
+    const seen: Array<{ next: number; current: number }> = [];
+    await withVaultReset(
+      async () => undefined,
+      async (next) => {
+        seen.push({ next, current: currentEpoch() });
+      }
+    );
+    expect(seen).toEqual([{ next: 4, current: 3 }]);
+    expect(currentEpoch()).toBe(4);
+
+    await expect(
+      withVaultReset(
+        async () => undefined,
+        () => Promise.reject(new Error('disk full'))
+      )
+    ).rejects.toThrow('disk full');
+    expect(currentEpoch()).toBe(5);
+    await expect(withVaultWriter(4, async () => 1)).rejects.toBeInstanceOf(VaultResetError);
+    await expect(withVaultWriter(5, async () => 1)).resolves.toBe(1);
   });
 });

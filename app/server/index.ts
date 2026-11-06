@@ -8,8 +8,10 @@ import { logger } from './logger';
 import { createServer } from './server';
 import { createBlobStore } from './services/blob-store';
 import { createGarbageCollector } from './services/gc';
+import { loadResetEpoch } from './services/library';
 import { createJwtSecret } from './services/token';
 import { createUploadSessions } from './services/upload-session';
+import { initEpoch } from './services/vault-gate';
 import { startVault } from './startup';
 import { APP_VERSION } from './utils/app-version';
 
@@ -30,6 +32,10 @@ fs.mkdirSync(config.blobsDir, { recursive: true });
   const dbPath = path.join(config.dataDir, 'db.sqlite');
   const prisma = createPrismaClient(`file:${dbPath}`);
   await runMigrations(prisma);
+
+  // The keys-lost reset epoch survives restarts (services/vault-gate.ts);
+  // set before anything can authenticate a request.
+  initEpoch(await loadResetEpoch(prisma));
 
   // Persisted in the settings table so a signed-in browser survives a restart.
   const jwtSecret = await createJwtSecret(prisma);
