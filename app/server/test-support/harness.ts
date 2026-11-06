@@ -9,6 +9,7 @@ import { createPrismaClient } from '../db/client';
 import { runMigrations } from '../db/migrate';
 import { createServer } from '../server';
 import { createBlobStore, type BlobStore } from '../services/blob-store';
+import { createGarbageCollector, type GarbageCollector } from '../services/gc';
 import type { AppConfig } from '../types';
 
 export type Harness = {
@@ -19,6 +20,8 @@ export type Harness = {
   blobsDir: string;
   /** The store the app writes through, on `blobsDir`. */
   blobStore: BlobStore;
+  /** The collector the app's purge route runs, on the fake clock. */
+  gc: GarbageCollector;
   /** Mutable fake clock; every dep that reads time reads this. */
   now: { value: number };
   close(): Promise<void>;
@@ -50,11 +53,13 @@ export async function createHarness(): Promise<Harness> {
 
   const now = { value: 1_700_000_000_000 };
   const blobStore = createBlobStore({ root: blobsDir });
+  const gc = createGarbageCollector({ prisma, blobStore, now: () => now.value });
   const app = createServer({
     config,
     prisma,
     jwtSecret: Buffer.alloc(32, 7),
     blobStore,
+    gc,
     now: () => now.value,
   });
 
@@ -65,6 +70,7 @@ export async function createHarness(): Promise<Harness> {
     dataDir,
     blobsDir,
     blobStore,
+    gc,
     now,
     async close() {
       await prisma.$disconnect();

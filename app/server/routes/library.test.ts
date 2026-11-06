@@ -1,10 +1,12 @@
 import * as crypto from 'crypto';
+import * as fs from 'fs';
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { parseSecretKey } from '../crypto/codes';
 import { deriveAccountKeys } from '../crypto/kdf';
 import { keyWrapAad, open, seal } from '../crypto/seal';
+import { putBlob, tombstoneMeeting, type BlobsDeps } from '../services/blobs';
 import { createHarness, type Harness } from '../test-support/harness';
 import {
   createOwner,
@@ -332,5 +334,154 @@ describe('account operations', () => {
       newPassword: 'recovered password',
     });
     expect(fresh.status).toBe(204);
+  });
+});
+
+const sha = (b: Buffer) => crypto.createHash('sha256').update(b).digest('hex');
+
+/** Writes one blob through the service (the routes' sealed-header check is not under test here). */
+async function write(deps: BlobsDeps, scope: string, kind: string, text: string): Promise<number> {
+  const bytes = Buffer.from(`SCRB\x01${text}`, 'latin1');
+  const res = await putBlob(deps, {
+    scope,
+    kind,
+    bytes,
+    sha256: sha(bytes),
+    size: bytes.length,
+    ifMatch: null,
+    deviceId: null,
+  });
+  if (!res.ok) throw new Error(`write: ${res.reason}`);
+  return bytes.length;
+}
+
+/** A library made from cheap random material, plus its device token. */
+async function cheapLibrary(code: string): Promise<string> {
+  writeSetupCode(h.dataDir, code);
+  const res = await client.createLibrary(cheapBody(code));
+  expect(res.status).toBe(201);
+  return res.body.deviceToken!;
+}
+
+describe('storage and purge', () => {
+  it('storage counts bytes, blobs, meetings and deleted meetings', async () => {
+    const token = await cheapLibrary('code');
+    const deps: BlobsDeps = { prisma: h.prisma, blobStore: h.blobStore, now: () => h.now.value };
+    const live = crypto.randomUUID();
+    const deleted = crypto.randomUUID();
+    const purged = crypto.randomUUID();
+    let bytes = 0;
+    bytes += await write(deps, live, 'manifest', 'live manifest');
+    bytes += await write(deps, live, 'summary', 'live summary');
+    bytes += await write(deps, deleted, 'manifest', 'deleted manifest');
+    bytes += await write(deps, 'library', 'tag-list', 'tags');
+    await write(deps, purged, 'manifest', 'purged manifest');
+
+    // Purge one tombstone now; the other stays in the bin.
+    await tombstoneMeeting(deps, purged, null);
+    const emptied = await client.purge(token);
+    expect(emptied.status).toBe(200);
+    expect(emptied.body).toEqual({ purgedMeetings: 1, removedFiles: 1 });
+    await tombstoneMeeting(deps, deleted, null);
+
+    const res = await client.libraryInfo(token);
+    expect(res.status).toBe(200);
+    expect(res.body.storage).toEqual({
+      blobBytes: bytes,
+      blobCount: 4,
+      meetingCount: 1,
+      deletedMeetingCount: 1,
+    });
+    expect((await client.purge('nope')).status).toBe(401);
+  });
+});
+
+describe('DELETE /api/v1/library (keys lost)', () => {
+  it('keys-lost deletion needs the live setup code and the word DELETE, then status says no library', async () => {
+    const token = await cheapLibrary('the-code');
+    const deps: BlobsDeps = { prisma: h.prisma, blobStore: h.blobStore, now: () => h.now.value };
+    const meeting = crypto.randomUUID();
+    await write(deps, meeting, 'manifest', 'a meeting');
+    await write(deps, 'library', `voice/${crypto.randomUUID()}`, 'a voice');
+    await tombstoneMeeting(deps, meeting, null);
+    await h.prisma.refreshToken.create({ data: { tokenHash: 'a-browser', expiresAt: 1e15 } });
+    const settingsBefore = await h.prisma.setting.findMany({ orderBy: { key: 'asc' } });
+
+    writeSetupCode(h.dataDir, null);
+    const unset = await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' });
+    expect(unset.status).toBe(403);
+    expect(unset.body).toEqual({ error: 'Setup code required' });
+
+    writeSetupCode(h.dataDir, 'the-code');
+    const wrong = await client.deleteLibrary({ setupCode: 'not-the-code', confirm: 'DELETE' });
+    expect(wrong.status).toBe(403);
+    expect(wrong.body).toEqual({ error: 'Wrong setup code' });
+
+    // Five attempts an hour (pinned below); each batch here starts a new window.
+    const HOUR = 60 * 60 * 1000;
+    h.now.value += HOUR;
+    for (const body of [
+      { setupCode: 'the-code', confirm: 'delete' },
+      { setupCode: 'the-code' },
+      { confirm: 'DELETE' },
+      {},
+    ]) {
+      const res = await client.deleteLibrary(body);
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'Invalid request' });
+    }
+    expect((await client.status()).body.libraryExists).toBe(true);
+    expect(await h.prisma.blob.count()).toBe(2);
+
+    h.now.value += HOUR;
+    const res = await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' });
+    expect(res.status).toBe(204);
+
+    expect((await client.status()).body.libraryExists).toBe(false);
+    for (const count of [
+      h.prisma.library.count(),
+      h.prisma.recoveryCode.count(),
+      h.prisma.device.count(),
+      h.prisma.refreshToken.count(),
+      h.prisma.meeting.count(),
+      h.prisma.blob.count(),
+      h.prisma.change.count(),
+    ]) {
+      expect(await count).toBe(0);
+    }
+    expect(await h.prisma.setting.findMany({ orderBy: { key: 'asc' } })).toEqual(settingsBefore);
+    expect(fs.existsSync(h.blobsDir)).toBe(true);
+    expect(fs.readdirSync(h.blobsDir)).toEqual([]);
+    expect((await client.libraryInfo(token)).status).toBe(401);
+  });
+
+  it('after deletion a new library can be created', async () => {
+    await cheapLibrary('the-code');
+    expect((await client.deleteLibrary({ setupCode: 'the-code', confirm: 'DELETE' })).status).toBe(
+      204
+    );
+
+    const token = await cheapLibrary('the-code');
+    expect((await client.status()).body.libraryExists).toBe(true);
+    const info = await client.libraryInfo(token);
+    expect(info.status).toBe(200);
+    expect(info.body.storage).toEqual({
+      blobBytes: 0,
+      blobCount: 0,
+      meetingCount: 0,
+      deletedMeetingCount: 0,
+    });
+  });
+
+  it('is rate limited to 5 per hour per IP', async () => {
+    writeSetupCode(h.dataDir, 'the-code');
+    for (let i = 0; i < 5; i++) {
+      expect((await client.deleteLibrary({ setupCode: 'nope', confirm: 'DELETE' })).status).toBe(
+        403
+      );
+    }
+    expect((await client.deleteLibrary({ setupCode: 'nope', confirm: 'DELETE' })).status).toBe(429);
+    h.now.value += 60 * 60 * 1000;
+    expect((await client.deleteLibrary({ setupCode: 'nope', confirm: 'DELETE' })).status).toBe(403);
   });
 });

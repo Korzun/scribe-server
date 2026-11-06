@@ -9,6 +9,8 @@ import { isSealed, SEAL_HEADER_LENGTH, TAG_LENGTH } from '../crypto/seal';
 import { logger } from '../logger';
 import { ownerAuth } from '../middleware/owner-auth';
 import { createIpRateLimit } from '../middleware/rate-limit';
+import type { BlobStore } from '../services/blob-store';
+import type { GarbageCollector } from '../services/gc';
 import {
   changePassword,
   countUnusedRecoveryCodes,
@@ -17,6 +19,7 @@ import {
   LibraryExistsError,
   libraryStorage,
   replaceRecoveryCodes,
+  resetLibrary,
 } from '../services/library';
 import type { AppConfig } from '../types';
 import { base64Bytes } from '../utils/base64-schema';
@@ -27,6 +30,8 @@ export type LibraryRouterDeps = {
   prisma: PrismaClient;
   jwtSecret: Buffer;
   config: AppConfig;
+  blobStore: BlobStore;
+  gc: GarbageCollector;
   now: () => number;
 };
 
@@ -65,6 +70,11 @@ const createLibraryBody = z.object({
   device: z.object({ name: z.string().trim().min(1).max(100) }),
 });
 
+const deleteLibraryBody = z.object({
+  setupCode: z.string().max(256),
+  confirm: z.literal('DELETE'),
+});
+
 /**
  * Compares the presented setup code to the configured one in constant time
  * (spec §4). `timingSafeEqual` needs equal lengths, and a length mismatch is
@@ -78,14 +88,34 @@ function setupCodeMatches(presented: string, expected: string): boolean {
 }
 
 /**
- * The library routes (spec §4). Both are unauthenticated by nature — the app
- * has no credential until it has created or joined a library — so both sit
- * behind a per-IP rate limit.
+ * The live setup code check shared by library creation and the keys-lost
+ * reset (spec §4, §9): read from options.json at the moment of the request,
+ * never cached. `null` when it passes; otherwise the 403 body to send.
+ */
+function checkSetupCode(dataDir: string, presented: string): { error: string } | null {
+  const expected = readSetupCode(dataDir);
+  if (expected === null) return { error: 'Setup code required' };
+  if (!setupCodeMatches(presented, expected)) return { error: 'Wrong setup code' };
+  return null;
+}
+
+/**
+ * The library routes (spec §4, §9). Creation, the salts and the keys-lost
+ * reset are unauthenticated by nature (the app has no credential until it has
+ * created or joined a library, and the reset is for an owner who has lost
+ * theirs), so each sits behind a per-IP rate limit.
  *
  * Nothing here logs a request body, token, key, salt, verifier or setup code:
  * outcomes are logged with ids only.
  */
-export function createLibraryRouter({ prisma, jwtSecret, config, now }: LibraryRouterDeps): Router {
+export function createLibraryRouter({
+  prisma,
+  jwtSecret,
+  config,
+  blobStore,
+  gc,
+  now,
+}: LibraryRouterDeps): Router {
   const router = Router();
   const auth = ownerAuth({ prisma, jwtSecret, now });
   const saltsLimit = createIpRateLimit({
@@ -97,6 +127,14 @@ export function createLibraryRouter({ prisma, jwtSecret, config, now }: LibraryR
   const createLimit = createIpRateLimit({
     max: 10,
     windowMs: 60_000,
+    trustProxyHops: config.trustProxyHops,
+    now,
+  });
+  // Tighter than creation: the reset is destructive, and an owner needs it
+  // once in a vault's life.
+  const resetLimit = createIpRateLimit({
+    max: 5,
+    windowMs: 60 * 60_000,
     trustProxyHops: config.trustProxyHops,
     now,
   });
@@ -130,15 +168,10 @@ export function createLibraryRouter({ prisma, jwtSecret, config, now }: LibraryR
 
       // The setup code is checked BEFORE the database is touched, and is read
       // live from options.json so the operator can change it without a restart.
-      const expected = readSetupCode(config.dataDir);
-      if (expected === null) {
-        log.warn('Library creation refused: no setup code configured');
-        res.status(403).json({ error: 'Setup code required' });
-        return;
-      }
-      if (!setupCodeMatches(body.setupCode, expected)) {
-        log.warn('Library creation refused: setup code rejected');
-        res.status(403).json({ error: 'Wrong setup code' });
+      const refused = checkSetupCode(config.dataDir, body.setupCode);
+      if (refused !== null) {
+        log.warn(`Library creation refused: ${refused.error}`);
+        res.status(403).json(refused);
         return;
       }
 
@@ -168,6 +201,42 @@ export function createLibraryRouter({ prisma, jwtSecret, config, now }: LibraryR
         }
         throw err;
       }
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Spec §9, "Lost the Secret Key": nothing the vault's cryptography knows
+  // can authorise this, because the owner has lost it, so it is authorised by
+  // the one thing outside it: the live setup code, plus the word DELETE. The
+  // body shape (including `confirm`) is checked first, then the code, and
+  // only then is anything touched.
+  router.delete('/library', resetLimit, async (req, res, next) => {
+    try {
+      const parsed = deleteLibraryBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Invalid request' });
+        return;
+      }
+      const refused = checkSetupCode(config.dataDir, parsed.data.setupCode);
+      if (refused !== null) {
+        log.warn(`Library deletion refused: ${refused.error}`);
+        res.status(403).json(refused);
+        return;
+      }
+      await resetLibrary(prisma, blobStore);
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Spec §6: "the admin page can empty the bin sooner" than the seven-day
+  // grace. Live meetings are untouched; only tombstones are purged.
+  router.post('/library/purge', auth, async (_req, res, next) => {
+    try {
+      const { purgedMeetings, removedFiles } = await gc.sweep({ graceMs: 0 });
+      res.json({ purgedMeetings, removedFiles });
     } catch (err) {
       next(err);
     }

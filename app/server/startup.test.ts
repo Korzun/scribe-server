@@ -13,6 +13,8 @@ import { AppConfig } from './types';
 let root: string;
 let deps: StartupDeps;
 let listenCallback: ((err?: Error) => void) | undefined;
+let started: { stop(): void } | undefined;
+let sweep: ReturnType<typeof vi.fn>;
 // `startVault` registers real `process.on('SIGTERM'/'SIGINT', ...)` listeners
 // whose closures call `process.exit(0)` — snapshotting the listener lists
 // before each test lets afterEach remove only what this test added, without
@@ -40,15 +42,20 @@ beforeEach(() => {
       return undefined as never;
     }),
   };
+  sweep = vi.fn(async () => ({ purgedMeetings: 0, removedFiles: 0, expiredUploads: 0 }));
   deps = {
     prisma: { $disconnect: vi.fn() } as unknown as PrismaClient,
     config,
     version: '1.0.0',
     server,
+    gc: { sweep },
   } as unknown as StartupDeps;
 });
 
 afterEach(() => {
+  started?.stop();
+  started = undefined;
+  vi.useRealTimers();
   fs.rmSync(root, { recursive: true, force: true });
   for (const listener of process.listeners('SIGTERM')) {
     if (!sigtermListenersBefore.includes(listener)) process.removeListener('SIGTERM', listener);
@@ -60,14 +67,14 @@ afterEach(() => {
 
 describe('startVault', () => {
   it('creates the data and blobs directories', async () => {
-    await startVault(deps);
+    started = await startVault(deps);
 
     expect(fs.existsSync(deps.config.dataDir)).toBe(true);
     expect(fs.existsSync(deps.config.blobsDir)).toBe(true);
   });
 
   it('calls server.listen with the configured port', async () => {
-    await startVault(deps);
+    started = await startVault(deps);
 
     expect(deps.server.listen).toHaveBeenCalledWith(3000, expect.any(Function));
     expect(listenCallback).toBeDefined();
@@ -79,7 +86,7 @@ describe('startVault', () => {
     // and leave the process alive without a listener.
     const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     try {
-      await startVault(deps);
+      started = await startVault(deps);
       listenCallback!(Object.assign(new Error('listen EADDRINUSE'), { code: 'EADDRINUSE' }));
       expect(exit).toHaveBeenCalledWith(1);
     } finally {
@@ -90,8 +97,36 @@ describe('startVault', () => {
   it('does not exit when listen succeeds', async () => {
     const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     try {
-      await startVault(deps);
+      started = await startVault(deps);
       listenCallback!();
+      expect(exit).not.toHaveBeenCalled();
+    } finally {
+      exit.mockRestore();
+    }
+  });
+
+  it('sweeps at boot and every hour, and stop() ends the timer', async () => {
+    vi.useFakeTimers();
+    started = await startVault(deps);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sweep).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
+    expect(sweep).toHaveBeenCalledTimes(2);
+
+    started.stop();
+    await vi.advanceTimersByTimeAsync(3 * 60 * 60 * 1000);
+    expect(sweep).toHaveBeenCalledTimes(2);
+  });
+
+  it('a sweep that throws is logged and never fatal', async () => {
+    vi.useFakeTimers();
+    const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    sweep.mockRejectedValue(new Error('disk on fire'));
+    try {
+      started = await startVault(deps);
+      await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
+      expect(sweep).toHaveBeenCalledTimes(2);
       expect(exit).not.toHaveBeenCalled();
     } finally {
       exit.mockRestore();

@@ -70,6 +70,8 @@ export type ClientBody = {
   }>;
   nextSince?: number;
   hasMore?: boolean;
+  purgedMeetings?: number;
+  removedFiles?: number;
 };
 
 export type MeetingBlobEntry = { kind: string; revision: number; sha256: string; size: number };
@@ -456,28 +458,11 @@ export class VaultClient {
     kind: string;
     ifNoneMatch?: string;
   }): Promise<BlobResponse> {
-    const req = request(this.app)
-      .get(`/api/v1/meetings/${input.meetingId}/blobs/${input.kind}`)
-      .set('Authorization', `Bearer ${input.token}`)
-      .buffer(true)
-      .parse((res, done) => {
-        const chunks: Buffer[] = [];
-        res.on('data', (c: Buffer) => chunks.push(c));
-        res.on('end', () => done(null, Buffer.concat(chunks)));
-      });
-    if (input.ifNoneMatch !== undefined) req.set('If-None-Match', input.ifNoneMatch);
-    const res = await req;
-    const bytes = Buffer.isBuffer(res.body) ? res.body : Buffer.alloc(0);
-    const isJson = String(res.headers['content-type'] ?? '').startsWith('application/json');
-    return {
-      status: res.status,
-      bytes,
-      body: isJson ? (JSON.parse(bytes.toString('utf8')) as ClientBody) : {},
-      etag: res.headers.etag,
-      sha256: res.headers['x-scribe-sha256'],
-      contentType: res.headers['content-type'],
-      contentLength: res.headers['content-length'],
-    };
+    return this.getRawBlob(
+      `/api/v1/meetings/${input.meetingId}/blobs/${input.kind}`,
+      input.token,
+      input.ifNoneMatch
+    );
   }
 
   /** GET /meetings, one page. */
@@ -516,6 +501,104 @@ export class VaultClient {
       .query(query)
       .set('Authorization', `Bearer ${token}`);
     return { status: res.status, body: res.body };
+  }
+
+  /**
+   * PUT /library/blobs/<kind> (`tag-list` or `voice/<uuid>`), with the same
+   * headers and precondition rules as `putMeetingBlob`. `kind` goes into the
+   * path verbatim, so a test can send `voice/../x` or an empty kind.
+   */
+  async putLibraryBlob(input: {
+    token: string;
+    kind: string;
+    bytes: Buffer;
+    ifMatch?: number | null;
+    sha256?: string;
+  }): Promise<ClientResponse> {
+    const req = request(this.app)
+      .put(`/api/v1/library/blobs/${input.kind}`)
+      .set('Authorization', `Bearer ${input.token}`)
+      .set('Content-Type', 'application/octet-stream')
+      .set(
+        'X-Scribe-Sha256',
+        input.sha256 ?? crypto.createHash('sha256').update(input.bytes).digest('hex')
+      );
+    if (input.ifMatch === null) req.set('If-None-Match', '*');
+    else if (input.ifMatch !== undefined) req.set('If-Match', String(input.ifMatch));
+    const res = await req.send(input.bytes);
+    return { status: res.status, body: res.body };
+  }
+
+  /** GET /library/blobs/<kind>; the bytes come back raw, never JSON-parsed. */
+  async getLibraryBlob(input: {
+    token: string;
+    kind: string;
+    ifNoneMatch?: string;
+  }): Promise<BlobResponse> {
+    return this.getRawBlob(`/api/v1/library/blobs/${input.kind}`, input.token, input.ifNoneMatch);
+  }
+
+  /** DELETE /library/blobs/voice/<voiceId>. */
+  async deleteVoice(token: string, voiceId: string): Promise<ClientResponse> {
+    return this.deletePath(`/api/v1/library/blobs/voice/${voiceId}`, token);
+  }
+
+  /** DELETE /library/blobs/<kind> with any kind, for the 405 and 400 tests. */
+  async deleteLibraryBlob(token: string, kind: string): Promise<ClientResponse> {
+    return this.deletePath(`/api/v1/library/blobs/${kind}`, token);
+  }
+
+  /** DELETE /meetings/:id: tombstones the meeting. */
+  async deleteMeeting(token: string, id: string): Promise<ClientResponse> {
+    return this.deletePath(`/api/v1/meetings/${id}`, token);
+  }
+
+  /** POST /library/purge: empties the bin now instead of after the grace. */
+  async purge(token: string): Promise<ClientResponse> {
+    const res = await request(this.app)
+      .post('/api/v1/library/purge')
+      .set('Authorization', `Bearer ${token}`);
+    return { status: res.status, body: res.body };
+  }
+
+  /** DELETE /library (keys lost): no credential, only the live setup code and the word DELETE. */
+  async deleteLibrary(body: { setupCode?: unknown; confirm?: unknown }): Promise<ClientResponse> {
+    const res = await request(this.app).delete('/api/v1/library').send(body);
+    return { status: res.status, body: res.body };
+  }
+
+  private async deletePath(url: string, token: string): Promise<ClientResponse> {
+    const res = await request(this.app).delete(url).set('Authorization', `Bearer ${token}`);
+    return { status: res.status, body: res.body };
+  }
+
+  private async getRawBlob(
+    url: string,
+    token: string,
+    ifNoneMatch: string | undefined
+  ): Promise<BlobResponse> {
+    const req = request(this.app)
+      .get(url)
+      .set('Authorization', `Bearer ${token}`)
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c: Buffer) => chunks.push(c));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      });
+    if (ifNoneMatch !== undefined) req.set('If-None-Match', ifNoneMatch);
+    const res = await req;
+    const bytes = Buffer.isBuffer(res.body) ? res.body : Buffer.alloc(0);
+    const isJson = String(res.headers['content-type'] ?? '').startsWith('application/json');
+    return {
+      status: res.status,
+      bytes,
+      body: isJson ? (JSON.parse(bytes.toString('utf8')) as ClientBody) : {},
+      etag: res.headers.etag,
+      sha256: res.headers['x-scribe-sha256'],
+      contentType: res.headers['content-type'],
+      contentLength: res.headers['content-length'],
+    };
   }
 
   async createLibrary(input: unknown): Promise<ClientResponse> {
