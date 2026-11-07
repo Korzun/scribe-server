@@ -1,0 +1,6 @@
+export const home = () => '/';
+export const login = () => '/login';
+/** Forgot password: sign in with a recovery code and choose a new password (Task 13). */
+export const recover = () => '/recover';
+/** Lost everything: the keys-lost reset that deletes the library (Task 13). */
+export const reset = () => '/reset';

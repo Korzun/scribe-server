@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "iterations": 650000,
+  "notes": [
+    "All binary values are lowercase hex unless noted. Strings are UTF-8.",
+    "secret is the UTF-8 bytes of the password (password and unicode blocks) or the raw 10 recovery-code bytes (recovery block).",
+    "Passwords are normalised to Unicode NFC, then UTF-8 encoded; nothing is trimmed. The unicode block derives from inputs.unicodePasswordNfd and equals the derivation from inputs.unicodePasswordNfc (secret = inputs.unicodePasswordUtf8).",
+    "kPw = PBKDF2-HMAC-SHA256(secret, salt, 650000 iterations, 32 bytes).",
+    "kSk = HKDF-SHA256(ikm = secretKey, salt = salt, info = \"scribe/v1/secret-key\", 32 bytes).",
+    "auk = kPw XOR kSk.",
+    "kek = HKDF-SHA256(ikm = auk, salt = zero-length, info = \"scribe/v1/kek\", 32 bytes).",
+    "authKey = HKDF-SHA256(ikm = auk, salt = zero-length, info = \"scribe/v1/auth\", 32 bytes).",
+    "The HKDF salt for kek and authKey is zero-length, which for HMAC-SHA256 is equivalent to 32 zero bytes per RFC 5869.",
+    "Sealed blob = \"SCRB\" (ASCII) | 0x01 | 12-byte nonce | AES-256-GCM ciphertext | 16-byte tag. AAD is a UTF-8 string.",
+    "wraps.password = seal(password.kek, libraryKey, passwordAad, nonce); wraps.recovery = seal(recovery.kek, libraryKey, recoveryAad, nonce).",
+    "Key-wrap AAD = \"<libraryId>/keys/<slot>\" with slot \"password\" or \"recovery\".",
+    "Blob AAD = \"<libraryId>/<scope>/<kind>/<revision>\"; scope is a meeting UUID or \"library\". blob.sealed = seal(libraryKey, plaintext, blob.aad, nonce).",
+    "A library kind may contain a slash: libraryBlob.aad = \"<libraryId>/library/voice/<voiceId>/1\" and libraryBlob.sealed = seal(libraryKey, plaintext, libraryBlob.aad, nonce).",
+    "UUIDs in AADs and in every API path are canonical lowercase 8-4-4-4-12 hex; the server rejects anything else.",
+    "libraryId is used exactly as the server returns it.",
+    "Secret Key text = \"A1-\" + RFC 4648 base32 (uppercase, no padding) of the 16 bytes, 26 chars in groups 5-5-5-5-6 joined by \"-\"; the 2 padding bits of the last char must be zero.",
+    "Recovery code text = RFC 4648 base32 of the 10 bytes, 16 chars in groups 4-4-4-4 joined by \"-\".",
+    "The base32 alphabet is RFC 4648 (A-Z2-7) with no input aliases.",
+    "The fixed nonce is reused across vectors for determinism only; real use draws a fresh random nonce per seal."
+  ],
+  "inputs": {
+    "password": "correct horse battery staple",
+    "unicodePasswordNfc": "café",
+    "unicodePasswordNfd": "café",
+    "unicodePasswordUtf8": "636166c3a9",
+    "secretKey": "00112233445566778899aabbccddeeff",
+    "passwordSalt": "0102030405060708090a0b0c0d0e0f10",
+    "recoverySalt": "1112131415161718191a1b1c1d1e1f20",
+    "recoveryCode": "2122232425262728292a",
+    "libraryId": "3f2b1c4e-9d8a-4f6b-8c7d-5e4f3a2b1c0d",
+    "meetingId": "7a1e5b3c-2d4f-4a6b-9c8d-0e1f2a3b4c5d",
+    "voiceId": "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f",
+    "libraryKey": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+    "nonce": "606162636465666768696a6b",
+    "plaintext": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+  },
+  "formatted": {
+    "secretKey": "A1-AAISE-M2EKV-THPCE-ZVK54-ZXPO74",
+    "recoveryCode": "EERC-GJBF-EYTS-QKJK"
+  },
+  "password": {
+    "kPw": "fb9632ce79eccee091c0d7367b86752a68b6736a866080cda97057e8ff86f4c0",
+    "kSk": "1b30815f62fc94839998a463afed9253afc9450d9c62ea0f2aa09526d0742c50",
+    "auk": "e0a6b3911b105a6308587355d46be779c77f36671a026ac283d0c2ce2ff2d890",
+    "kek": "f29347b8d311ef07cdfde94c136cca74bdc9f801eb6bcac1ea8e3fb72adf3ad4",
+    "authKey": "e62b9fbcf1306f2b6aaebdef65ec86513fd6639f70d16bb99c46d3e95b22091e"
+  },
+  "unicode": {
+    "kPw": "9ba6027ff17afb397196fdb8766dcb945bf5f63042ed838e09535ba886ac5a79",
+    "kSk": "1b30815f62fc94839998a463afed9253afc9450d9c62ea0f2aa09526d0742c50",
+    "auk": "8096832093866fbae80e59dbd98059c7f43cb33dde8f698123f3ce8e56d87629",
+    "kek": "cd7bd50780cd3678623ed2dfce7aa620df996df7e664aa0c87d258c6269e554f",
+    "authKey": "c0d78f55956505986d16ae3cc25ada1b7ca6d4a9a6298a4719ea757f30e13f44"
+  },
+  "recovery": {
+    "kPw": "226d632257c7ae473746923f78f5370e23c27561be9ee3f9a011a9f2724de83b",
+    "kSk": "56a370e8f85735d283787b90b01d2f3f3f8484dec3dfa4dbeefc695e0e2ebcb3",
+    "auk": "74ce13caaf909b95b43ee9afc8e818311c46f1bf7d4147224eedc0ac7c635488",
+    "kek": "006f414a900e37c729dfde60bcc4c217869ea7ebfc5229b7b38711a5d230edec",
+    "authKey": "c7ca0edaa9b2c279c44ea31904b99f7dc3efefa155fc06effd150d965cc9b1b4"
+  },
+  "wraps": {
+    "passwordAad": "3f2b1c4e-9d8a-4f6b-8c7d-5e4f3a2b1c0d/keys/password",
+    "password": "5343524201606162636465666768696a6baddd20bc8ece34cc31ab559e3da2345a33fc1647beb4f720d22dda215e139573b7bef3e5aea74c94cc8d7c1e596e6e63",
+    "recoveryAad": "3f2b1c4e-9d8a-4f6b-8c7d-5e4f3a2b1c0d/keys/recovery",
+    "recovery": "5343524201606162636465666768696a6b05a1cdcfce6815fe9d76b274017bc03a7794242acea41d539aecf5f3b36d27066923f11f37af249cd59141b3d9245d94"
+  },
+  "blob": {
+    "aad": "3f2b1c4e-9d8a-4f6b-8c7d-5e4f3a2b1c0d/7a1e5b3c-2d4f-4a6b-9c8d-0e1f2a3b4c5d/transcript/1",
+    "sealed": "5343524201606162636465666768696a6bac290b06039196a10188733d098b52041f3dfc02032b87191663d1a3b7df19e400cecf3d5feef9ae80d08a0337032e05ce175f7f41739b835d2f2350c0bcf28f9f68fcb6a35b3f7b434c9f2416b0d3b6"
+  },
+  "libraryBlob": {
+    "aad": "3f2b1c4e-9d8a-4f6b-8c7d-5e4f3a2b1c0d/library/voice/c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f/1",
+    "sealed": "5343524201606162636465666768696a6bac290b06039196a10188733d098b52041f3dfc02032b87191663d1a3b7df19e400cecf3d5feef9ae80d08a0337032e05ce175f7f41739b835d2f2350c0bcf28f5078229cc9fc8d8e1145b538416f0738"
+  }
+}
