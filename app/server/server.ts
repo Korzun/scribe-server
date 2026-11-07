@@ -96,7 +96,7 @@ export function createServer({
   server.use((err: unknown, _req: Request, res: Response, next: NextFunction): void => {
     if (err instanceof SyntaxError && 'body' in err) {
       log.warn(
-        'Malformed request body — possible Cloudflare error page received as request (rejecting with 400)'
+        'Malformed request body — possible proxy error page received as request (rejecting with 400)'
       );
       res.status(400).json({ error: 'Invalid request body' });
       return;

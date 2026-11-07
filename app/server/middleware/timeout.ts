@@ -6,7 +6,7 @@ const log = logger('Timeout');
 
 /**
  * Sends 503 if a response has not been sent within `ms`. Guards against
- * Cloudflare's ~100s proxy timeout (error 524): we respond first with a clean
+ * a tunnel or reverse proxy's ~100 s upstream timeout: we respond first with a clean
  * error the client can handle. The timer is cleared once the response finishes
  * or the connection closes, and the 503 is suppressed if headers were already
  * sent (the handler won the race).

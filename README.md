@@ -37,13 +37,13 @@ is admin only.
 
 Add-on options (set in the **Configuration** tab):
 
-| Option             | Type     | Default  | Description                                                                                                                                                                                                                                                                                       |
-| ------------------ | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `library_dir`      | string   | `scribe` | Sub-directory under `/media` where the encrypted blobs are stored.                                                                                                                                                                                                                                |
-| `public_url`       | string   | _(none)_ | Optional absolute origin this instance is reachable at (e.g. `https://scribe.example.com`). MCP turns on only when this is an **https** origin.                                                                                                                                                    |
-| `trust_proxy_hops` | int      | `0`      | Reverse-proxy hops to trust when resolving a client's real IP for rate limiting. Leave at `0` unless you sit behind a reverse proxy or **Cloudflare Tunnel**; set to `1` for a single such hop. Trusting a hop you don't actually run behind lets a client bypass the limiter, so don't set it higher than your real proxy count. |
+| Option             | Type     | Default  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------ | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `library_dir`      | string   | `scribe` | Sub-directory under `/media` where the encrypted blobs are stored.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `public_url`       | string   | _(none)_ | Optional absolute origin this instance is reachable at (e.g. `https://scribe.example.com`). MCP turns on only when this is an **https** origin.                                                                                                                                                                                                                                                                                                                                                          |
+| `trust_proxy_hops` | int      | `0`      | Reverse-proxy hops to trust when resolving a client's real IP for rate limiting. Leave at `0` unless you sit behind a reverse proxy or **HTTPS tunnel**; set to `1` for a single such hop. Trusting a hop you don't actually run behind lets a client bypass the limiter, so don't set it higher than your real proxy count.                                                                                                                                                                             |
 | `setup_code`       | password | _(none)_ | The key to creating the library, and to the keys-lost reset (see "Recovery"): it gates both from anyone who can reach the vault's address. Must be **at least 12 characters**; a shorter one is ignored as if unset. Re-read live from the add-on's options, so changing it in Home Assistant and restarting the add-on rotates it. Leave it empty and the vault refuses to create or reset a library. **Clear it (and restart) once the library exists**, and set it again only when a reset is needed. |
-| `log_level`        | list     | `info`   | Log verbosity: `debug`, `info`, `warn` or `error`.                                                                                                                                                                                                                                                |
+| `log_level`        | list     | `info`   | Log verbosity: `debug`, `info`, `warn` or `error`.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 Example:
 
@@ -64,7 +64,7 @@ volume.
 
 Everything in a meeting (audio, transcript, speakers, summary, tags, calendar
 details, voiceprints) is encrypted on your Mac with a Library Key the vault never
-holds on its disk unwrapped. A stolen NVMe, a Home Assistant backup shipped to
+holds on its disk unwrapped. A stolen drive, a Home Assistant backup shipped to
 the cloud, or another add-on reading `/media` yields no words. What stays in
 plaintext on the vault is only what it needs to operate with no key in hand:
 
@@ -93,11 +93,11 @@ end its access at once.
 
 The add-on serves everything on port **3000**, on the same host/origin:
 
-| Service        | Path       | Use it for                                                |
-| -------------- | ---------- | --------------------------------------------------------- |
-| **Admin page** | `/`        | Signing in, devices, storage, recovery.                   |
-| **Device API** | `/api/v1`  | What Scribe on your Mac talks to.                         |
-| **MCP**        | `/mcp`     | Letting an AI assistant read the library (a later part of this project; needs `public_url`). |
+| Service        | Path      | Use it for                                                                                   |
+| -------------- | --------- | -------------------------------------------------------------------------------------------- |
+| **Admin page** | `/`       | Signing in, devices, storage, recovery.                                                      |
+| **Device API** | `/api/v1` | What Scribe on your Mac talks to.                                                            |
+| **MCP**        | `/mcp`    | Letting an AI assistant read the library (a later part of this project; needs `public_url`). |
 
 ### The admin page
 
@@ -107,8 +107,8 @@ Secret Key is entered once per browser and remembered there.
 **The admin page needs HTTPS** (or `localhost`). Sign-in derives your keys in the
 browser, and browsers expose WebCrypto only in secure contexts, so over plain
 `http://<lan-ip>:3000` sign-in cannot work. This is a browser rule, not a Scribe
-limitation. Put the instance behind HTTPS (a reverse proxy or a Cloudflare
-Tunnel) and open it there.
+limitation. Put the instance behind HTTPS (a reverse proxy or an HTTPS
+tunnel) and open it there.
 
 From the admin page you can:
 
@@ -154,9 +154,9 @@ again only when a reset is needed.
 
 ## Ports
 
-| Port       | Description                                    |
-| ---------- | ---------------------------------------------- |
-| `3000/tcp` | Vault: device API, admin page, MCP.            |
+| Port       | Description                         |
+| ---------- | ----------------------------------- |
+| `3000/tcp` | Vault: device API, admin page, MCP. |
 
 ## Development
 
@@ -225,14 +225,14 @@ forget the device.
 When not running under Home Assistant, configuration falls back to environment
 variables, which override `options.json`:
 
-| Variable           | Default                    | Description                                                                                                                                              |
-| ------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATA_DIR`         | `/data`                    | Path for `options.json` and the SQLite database.                                                                                                         |
-| `BLOBS_DIR`        | `/media/<library_dir>/blobs` | Absolute path to the encrypted blob store.                                                                                                               |
-| `PORT`             | `3000`                     | HTTP listen port.                                                                                                                                        |
-| `PUBLIC_URL`       | _(none)_                   | Same as the add-on's `public_url` option above. Optional; MCP turns on only for an https origin (or `http://localhost` for development).                  |
-| `TRUST_PROXY_HOPS` | `0`                        | Same as the add-on's `trust_proxy_hops` option above. Leave at `0` unless you run a proxy; trusting a hop you don't control lets a client bypass the limiter. |
-| `LOG_LEVEL`        | `info`                     | Log verbosity.                                                                                                                                           |
+| Variable           | Default                      | Description                                                                                                                                                   |
+| ------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATA_DIR`         | `/data`                      | Path for `options.json` and the SQLite database.                                                                                                              |
+| `BLOBS_DIR`        | `/media/<library_dir>/blobs` | Absolute path to the encrypted blob store.                                                                                                                    |
+| `PORT`             | `3000`                       | HTTP listen port.                                                                                                                                             |
+| `PUBLIC_URL`       | _(none)_                     | Same as the add-on's `public_url` option above. Optional; MCP turns on only for an https origin (or `http://localhost` for development).                      |
+| `TRUST_PROXY_HOPS` | `0`                          | Same as the add-on's `trust_proxy_hops` option above. Leave at `0` unless you run a proxy; trusting a hop you don't control lets a client bypass the limiter. |
+| `LOG_LEVEL`        | `info`                       | Log verbosity.                                                                                                                                                |
 
 ## Release channels
 

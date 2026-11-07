@@ -49,7 +49,7 @@ function target(meetingId: string | null, kind: string): { scope: string; kind: 
 
 /**
  * Resumable chunked uploads (spec §7), for audio too big for one request:
- * the Cloudflare Tunnel in front of the vault caps a body at 100 MB, an hour
+ * the tunnel in front of the vault caps a body at 100 MB, an hour
  * of FLAC is more. The Mac begins a session with the blob's size and hash,
  * PUTs 16 MiB parts in any order, asks which parts arrived when it resumes,
  * and completes; the answer carries the hash the vault computed, and only on

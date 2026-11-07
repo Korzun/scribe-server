@@ -18,7 +18,7 @@ const log = logger('Uploads');
 
 const MiB = 1024 * 1024;
 
-/** The part size a Mac gets when it names none (spec §7: the starting point, well under Cloudflare's cap). */
+/** The part size a Mac gets when it names none (spec §7: the starting point, well under the tunnel's cap). */
 export const DEFAULT_PART_SIZE = 16 * MiB;
 export const MIN_PART_SIZE = 1 * MiB;
 /** The largest part allowed: still comfortably under the tunnel's 100 MB per request. */
@@ -109,7 +109,7 @@ const isEnoent = (err: unknown) => (err as NodeJS.ErrnoException).code === 'ENOE
 /**
  * Resumable chunked uploads (spec §7).
  *
- * Why parts: the vault is reached through a Cloudflare Tunnel that caps a
+ * Why parts: the vault is reached through an HTTPS tunnel that caps a
  * request body at 100 MB, and an hour of audio is bigger than that even as
  * FLAC. So a Mac begins a session with the blob's size and SHA-256, PUTs
  * fixed-size parts in any order (after a dropped connection it asks which

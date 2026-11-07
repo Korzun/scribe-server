@@ -124,7 +124,7 @@ model Change {
 }
 
 // One resumable chunked upload (spec §7): audio is bigger than the 100 MB a
-// Cloudflare Tunnel lets through in one request, so a Mac declares the blob's
+// typical HTTPS tunnel lets through in one request, so a Mac declares the blob's
 // size and SHA-256 here, sends it in parts to `<dataDir>/uploads/<id>/<n>`,
 // and completes. `ifMatch` is the precondition the Mac chose at the start;
 // `epoch` is the keys-lost reset epoch it began in (services/vault-gate.ts).

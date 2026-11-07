@@ -66,7 +66,7 @@ export async function createLibrary(
   }
 
   // Sequential on purpose: node-argon2's 64 MiB default times eleven in
-  // parallel is a real memory peak on a Raspberry Pi. One-time cost per vault.
+  // parallel is a real memory peak on a small ARM board. One-time cost per vault.
   const authVerifier = await hashAuthKey(input.authKey);
   const codeVerifiers: string[] = [];
   for (const code of input.recoveryCodes) codeVerifiers.push(await hashAuthKey(code.authKey));
@@ -331,7 +331,7 @@ export async function replaceRecoveryCodes(
   if (library === null) return null;
   if (!(await argon2.verify(library.authVerifier, input.authKey.toString('base64')))) return null;
 
-  // Sequential, as in createLibrary: argon2's memory use times ten in parallel is a Pi-sized peak.
+  // Sequential, as in createLibrary: argon2's memory use times ten in parallel is more than a small board can spare.
   const verifiers: string[] = [];
   for (const code of input.codes) verifiers.push(await hashAuthKey(code.authKey));
   const ids = input.codes.map(() => generateId());
