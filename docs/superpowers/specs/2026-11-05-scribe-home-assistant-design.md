@@ -1,7 +1,8 @@
 # Scribe — The Home Assistant Vault
 
 **Date:** 2026-11-05
-**Status:** Approved design, ready for implementation planning
+**Status:** Approved design; plan 1 (vault core) implemented. Amended
+2026-11-08 to match three calls made during implementation (§15).
 
 ## 1. Overview
 
@@ -164,13 +165,19 @@ those changed. Cutting a Mac off is always and only "revoke device" on the
 admin page. The one consequence worth saying aloud: a stolen Mac keeps
 working until the owner revokes it, whatever happens to the password.
 
-A recovery code `c` derives the same way with `c` in place of `P` and its
-own salt: the vault stores, per code, `salt_c`, `argon2id(AuthK_c)` and
-`wrap(KEK_c, LK)`. Using a code authenticates with `AuthK_c`, unwraps LK
-client-side, sets a new password (new `salt_pw`, new verifier, new wrap),
-and the vault deletes that code's row. Codes are single-use, enforced by
-the vault. Regenerating codes replaces all ten. A code without the Secret
-Key is useless, which is the second dimension the owner asked for.
+A recovery code `c` derives the same way with `c` in place of `P`. The ten
+codes share one `salt_rc`, stored once per library; each code has its own
+`argon2id(AuthK_c)` and its own `wrap(KEK_c, LK)`, so no code opens
+another. One salt is enough because a code carries 80 random bits, far
+beyond any precomputation, and it lets the browser fetch one salt and
+derive from whichever code the owner typed. Using a code authenticates
+with `AuthK_c`, unwraps LK client-side, sets a new password (new
+`salt_pw`, new verifier, new wrap), and the vault marks that code's row
+used. Codes are single-use, enforced by the vault; a used row stays so the
+kit and the admin page can say which of the ten are spent. Its wrap still
+needs the Secret Key to open. Regenerating codes replaces all ten. A code
+without the Secret Key is useless, which is the second dimension the owner
+asked for.
 
 ### Blobs
 
@@ -345,9 +352,10 @@ that side wins; if both did, mine wins, because the owner is sitting at
 this Mac and just typed it. `refusals` are unioned. That is the only merge
 in the design, and `labels.json` gains no timestamp to support it.
 
-Deletion is `DELETE /api/v1/meetings/<id>`, which tombstones every blob of
-the meeting in the log. A Mac that sees the tombstone removes its cache and
-any local audio. Blobs are garbage-collected on the vault after a grace
+Deletion is `DELETE /api/v1/meetings/<id>`, which tombstones the meeting
+with one change-log row of kind `meeting`, `deleted: true`, covering every
+blob it had. A Mac that sees the tombstone removes its cache and any local
+audio. Blobs are garbage-collected on the vault after a grace
 period of seven days, and the admin page can empty the bin sooner.
 
 ## 7. Audio: upload and offload
@@ -637,3 +645,9 @@ Four plans, in sequence, each shippable alone:
 - MCP conformance compares parsed payloads and treats cursors as opaque
   per door; the exporter is the first task of plan 2.
 - Tunnel only, one URL, for every client (the owner's decision).
+- One recovery salt shared by the ten codes, not a salt per code
+  (accepted 2026-11-08).
+- A used recovery code is marked used, not deleted, so the kit and the
+  admin page can count what is left (accepted 2026-11-08).
+- A deleted meeting is one tombstone row of kind `meeting`, not one per
+  blob kind (accepted 2026-11-08).
