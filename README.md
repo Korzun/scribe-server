@@ -52,13 +52,22 @@ The package has to be public on GHCR for that pull to work without a login.
 
 ## Deploying on Coolify
 
-1. **New resource → Git repository**, this repository, branch `main`, build pack
-   **Dockerfile**. Port `3000`.
-2. **Domain:** the hostname your tunnel or DNS serves, with `https`. Coolify
-   routes it to the container.
-3. **Environment variables:** `PUBLIC_URL` (that origin), `TRUST_PROXY_HOPS=2`
-   when a tunnel sits in front of Coolify's proxy (`1` for the proxy alone), and
-   `SETUP_CODE` (a long random phrase, as a runtime variable).
+1. **New resource → Git repository**, this repository, branch `main`. Coolify
+   picks the **Docker Compose** build pack from the root `docker-compose.yml`
+   (the **Dockerfile** build pack with port `3000` works too).
+2. **Domain:** the hostname your tunnel or DNS serves. Behind a tunnel that
+   terminates TLS (Cloudflare Tunnel and the like), enter it with `http`:
+   the tunnel reaches Coolify's proxy over plain HTTP, and an `https` domain
+   would make the proxy request a certificate it cannot validate and redirect
+   every request back to `https`, which loops through the tunnel. Point the
+   tunnel's public hostname at the proxy (`http://localhost:80`, or
+   `http://coolify-proxy:80` when cloudflared runs as a container on Coolify's
+   network). Use `https` only when the proxy itself is reachable from the
+   internet and holds the certificate.
+3. **Environment variables:** `PUBLIC_URL` (the `https` origin the browser
+   uses, whatever the domain above says), `TRUST_PROXY_HOPS=2` when a tunnel
+   sits in front of Coolify's proxy (`1` for the proxy alone), and `SETUP_CODE`
+   (a long random phrase, as a runtime variable).
 4. **Persistent storage:** a volume mounted at `/data`.
 5. **Deploy.** Coolify builds the image on the server, starts it, and waits for
    the health check.
