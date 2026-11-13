@@ -38,7 +38,7 @@ type RateLimitWindow = { count: number; windowStart: number };
  * operator error no implementation can detect from inside one request, which
  * is why `AppConfig.trustProxyHops` warns against it.
  */
-function resolveClientIp(req: Request, trustProxyHops: number): string {
+export function resolveClientIp(req: Request, trustProxyHops: number): string {
   const direct = req.socket.remoteAddress ?? 'unknown';
   if (trustProxyHops <= 0) return direct;
 

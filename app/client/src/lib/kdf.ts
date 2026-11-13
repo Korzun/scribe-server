@@ -94,3 +94,25 @@ export async function deriveAccountKeys(input: DeriveInput): Promise<{
   const { auk, kek, authKey } = await deriveIntermediates(input);
   return { auk, kek, authKey };
 }
+
+/**
+ * The key that wraps the Library Key for one MCP secret (spec §10): the
+ * authorization code the consent page mints, 32 random bytes. The vault
+ * derives the same key from the code when the assistant exchanges it
+ * (`crypto/token-kek.ts`); test/vectors/scribe-mcp-token-v1.json pins both.
+ */
+export const deriveTokenKek = (secret: Uint8Array): Promise<Uint8Array> =>
+  hkdf(secret, EMPTY_SALT, 'scribe/v1/token-kek');
+
+/** SHA-256 of a secret's wire form (unpadded base64url), lowercase hex: what the vault stores. */
+export async function hashTokenSecret(wire: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(wire));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Unpadded base64url, the wire form of a token secret. */
+export const toBase64Url = (bytes: Uint8Array): string => {
+  let raw = '';
+  for (const byte of bytes) raw += String.fromCharCode(byte);
+  return btoa(raw).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};

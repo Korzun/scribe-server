@@ -179,6 +179,42 @@ jobs:
             exit 1
           fi
           echo "Auth check passed (got 401 as expected)"
+          # No https PUBLIC_URL: the MCP endpoint and its OAuth metadata are
+          # off, and say so as JSON rather than serving the admin page's HTML.
+          MCP_OFF_STATUS=$(curl -s -o /tmp/mcp-off.json -w '%{http_code}' http://localhost:3000/mcp)
+          META_OFF_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/.well-known/oauth-authorization-server)
+          if [ "$MCP_OFF_STATUS" != "404" ] || [ "$META_OFF_STATUS" != "404" ] || ! grep -q 'MCP is not enabled' /tmp/mcp-off.json; then
+            echo "MCP-off check failed: expected 404 JSON from /mcp and the metadata document, got ${MCP_OFF_STATUS} and ${META_OFF_STATUS}: $(cat /tmp/mcp-off.json)"
+            exit 1
+          fi
+          echo "MCP-off check passed (/mcp is a JSON 404 without an https PUBLIC_URL)"
+      - name: Container with an https PUBLIC_URL (MCP on)
+        run: |
+          . ./smoke-lib.sh
+          docker run -d --name smoke-mcp -p 3003:3000 -e PUBLIC_URL=https://vault.example scribe:smoke
+          wait_healthy smoke-mcp
+          # The OAuth issuer is PUBLIC_URL, never the Host header this request carries.
+          META=$(curl -s http://localhost:3003/.well-known/oauth-authorization-server)
+          if ! echo "$META" | grep -q '"issuer":"https://vault.example/"' || ! echo "$META" | grep -q '"token_endpoint":"https://vault.example/mcp/oauth/token"'; then
+            echo "MCP metadata check failed: expected the issuer to be PUBLIC_URL, got ${META}"
+            exit 1
+          fi
+          echo "MCP metadata check passed (issuer is PUBLIC_URL)"
+          # POST /mcp without a token is a 401 that points at the resource metadata.
+          MCP_STATUS=$(curl -s -D /tmp/mcp-headers.txt -o /dev/null -w '%{http_code}' -X POST http://localhost:3003/mcp \
+            -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"ping"}')
+          if [ "$MCP_STATUS" != "401" ] || ! grep -qi 'www-authenticate: Bearer' /tmp/mcp-headers.txt || ! grep -q 'oauth-protected-resource/mcp' /tmp/mcp-headers.txt; then
+            echo "MCP auth check failed: expected 401 with a WWW-Authenticate pointer from POST /mcp, got ${MCP_STATUS}: $(cat /tmp/mcp-headers.txt)"
+            exit 1
+          fi
+          echo "MCP auth check passed (POST /mcp without a token is 401 with WWW-Authenticate)"
+          STATUS_BODY=$(curl -s http://localhost:3003/api/v1/status)
+          if ! echo "$STATUS_BODY" | grep -q '"mcp":true'; then
+            echo "Status check failed: expected mcp:true, got ${STATUS_BODY}"
+            exit 1
+          fi
+          echo "Status check passed (mcp:true)"
       - name: Container with SETUP_CODE set (gate open)
         run: |
           . ./smoke-lib.sh
@@ -244,8 +280,9 @@ jobs:
         if: failure()
         run: |
           docker logs smoke-closed 2>&1 || true
+          docker logs smoke-mcp 2>&1 || true
           docker logs smoke-open 2>&1 || true
           docker logs smoke-addon 2>&1 || true
       - name: Cleanup
         if: always()
-        run: docker rm -f smoke-closed smoke-open smoke-addon 2>/dev/null || true
+        run: docker rm -f smoke-closed smoke-mcp smoke-open smoke-addon 2>/dev/null || true

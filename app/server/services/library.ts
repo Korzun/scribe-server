@@ -176,6 +176,11 @@ export async function libraryStorage(prisma: PrismaClient): Promise<{
  * (services/upload-session.ts removes any directory with no row behind it).
  */
 const RESET_TABLES: ReadonlyArray<(db: PrismaClient) => Prisma.PrismaPromise<unknown>> = [
+  (db) => db.job.deleteMany(),
+  (db) => db.mcpToken.deleteMany(),
+  (db) => db.mcpAuthorizationCode.deleteMany(),
+  (db) => db.mcpGrant.deleteMany(),
+  (db) => db.mcpClient.deleteMany(),
   (db) => db.upload.deleteMany(),
   (db) => db.change.deleteMany(),
   (db) => db.blob.deleteMany(),
@@ -246,10 +251,10 @@ export function resetLibrary(
       try {
         await jwtSecret.rotate();
       } catch (err) {
-        const name = err instanceof Error ? err.name : typeof err;
-        const code = (err as { code?: unknown } | null)?.code;
+        const errorClass = err instanceof Error ? err.name : typeof err;
+        const errno = (err as { code?: unknown } | null)?.code;
         log.error(
-          `Library deleted, but rotating the signing secret failed: ${name}${typeof code === 'string' ? ` (${code})` : ''}`
+          `Library deleted, but rotating the signing secret failed: ${errorClass}${typeof errno === 'string' ? ` (${errno})` : ''}`
         );
         outcome = 'rotation_failed';
       }
