@@ -14,6 +14,7 @@ import { createUploadSessions } from './services/upload-session';
 import { initEpoch } from './services/vault-gate';
 import { startVault } from './startup';
 import { APP_VERSION } from './utils/app-version';
+import { defaultPrivilegeOps, dropPrivileges, VAULT_UID } from './utils/drop-privileges';
 
 const log = logger('Server');
 
@@ -25,8 +26,16 @@ process.on('unhandledRejection', (reason) => {
 
 const config = loadConfig();
 
-fs.mkdirSync(config.dataDir, { recursive: true });
-fs.mkdirSync(config.blobsDir, { recursive: true });
+// Before anything is opened or written: as root, own the two data directories
+// and become the unprivileged user, so every file the vault creates is that
+// user's (utils/drop-privileges.ts). Not root: just make sure the directories exist.
+const privilegeOps = defaultPrivilegeOps();
+if (privilegeOps !== null && dropPrivileges([config.dataDir, config.blobsDir], privilegeOps)) {
+  log.info(`Dropped privileges to uid ${VAULT_UID}`);
+} else {
+  fs.mkdirSync(config.dataDir, { recursive: true });
+  fs.mkdirSync(config.blobsDir, { recursive: true });
+}
 
 (async () => {
   const dbPath = path.join(config.dataDir, 'db.sqlite');
