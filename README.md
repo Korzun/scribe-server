@@ -81,7 +81,7 @@ string counts as unset.
 | `DATA_DIR`         | `/data`            | —                  | The SQLite database, in-flight upload parts, and by default the blobs.                                                                                                                                                                                                                                |
 | `BLOBS_DIR`        | `<DATA_DIR>/blobs` | `library_dir`      | Where the encrypted blobs live. Set it (and mount a second volume) to keep blobs on a bigger disk. Under the add-on, `library_dir` places them at `/media/<library_dir>/blobs`.                                                                                                                       |
 | `PORT`             | `3000`             | —                  | Listen port inside the container.                                                                                                                                                                                                                                                                     |
-| `PUBLIC_URL`       | _(none)_           | `public_url`       | The `https` origin clients use (e.g. `https://scribe.example.com`). Never derived from the request. MCP will turn on only when this is an `https` origin.                                                                                                                                             |
+| `PUBLIC_URL`       | _(none)_           | `public_url`       | The `https` origin clients use (e.g. `https://scribe.example.com`). Never derived from the request. The MCP endpoint and its OAuth server turn on only when this is an `https` origin, and it is their issuer.                                                                                       |
 | `TRUST_PROXY_HOPS` | `0`                | `trust_proxy_hops` | Reverse-proxy hops to trust when resolving a client's IP for rate limiting: `1` for one proxy, `2` for a tunnel in front of a proxy. Trusting a hop you don't run lets a client bypass the limiter, so never set it higher than your real proxy count.                                                |
 | `SETUP_CODE`       | _(none)_           | `setup_code`       | Authorizes creating the library on a fresh vault and the keys-lost reset (see "Recovery"), so it is what stops a stranger claiming a vault on a public hostname. At least **12 characters**; shorter is ignored as if unset. **Remove it once the library exists** and set it again only for a reset. |
 | `LOG_LEVEL`        | `info`             | `log_level`        | `debug`, `info`, `warn` or `error`.                                                                                                                                                                                                                                                                   |
@@ -126,22 +126,23 @@ the vault is only what it needs to operate with no key in hand:
 - per meeting: its id, which blob kinds are present, byte sizes, a SHA-256 of
   each ciphertext, revision numbers, which device uploaded, and the vault's own
   timestamps;
-- the change log, devices and tokens.
-
-Later releases will add a job queue and the grants of the AI assistants you
-connect; those will be stored in plaintext the same way.
+- the change log, devices and tokens;
+- the reprocessing job queue (meeting ids, a short reason, who asked, lease and
+  outcome) and, for each AI assistant you connect, its registration, its grant,
+  and the hashes of its tokens.
 
 Not stored in the clear: titles, start and end times, durations, attendees,
 speaker names, tags, or text. The vault's own upload timestamps do reveal roughly
 when meetings happen; that is accepted.
 
-This release never reads plaintext. A later release will add a remote MCP
-endpoint, and that will be the one place the vault can: to answer an assistant
-you approved, it will unwrap the Library Key with the assistant's token,
-decrypt only what the call needs in memory, answer, and drop the key. A live,
-compromised vault could then read what passes through while a token is in use;
-that will be the boundary. Disconnecting an assistant will delete its wraps and
-end its access at once.
+The remote MCP endpoint is the one place the vault reads plaintext. To answer an
+assistant you approved, it unwraps the Library Key with the assistant's token,
+decrypts only what the call needs in memory, answers, and drops the key. The
+Library Key sits on the vault's disk only sealed under keys derived from the
+assistant's own tokens, which the vault does not keep. **A live, compromised
+vault could read what passes through while a token is in use; that is the
+boundary.** Disconnecting an assistant deletes its wraps and ends its access at
+once. See "Connecting an assistant".
 
 ## Usage
 
@@ -150,9 +151,9 @@ same origin:
 
 | Service        | Path      | Use it for                                                                                   |
 | -------------- | --------- | -------------------------------------------------------------------------------------------- |
-| **Admin page** | `/`       | Setup, signing in, devices, storage, recovery.                                               |
-| **Device API** | `/api/v1` | What Scribe on your Mac talks to.                                                            |
-| **MCP**        | `/mcp`    | Letting an AI assistant read the library (a later part of this project; needs `PUBLIC_URL`). |
+| **Admin page** | `/`       | Setup, signing in, devices, assistants, reprocessing, storage, recovery.                     |
+| **Device API** | `/api/v1` | What Scribe on your Mac talks to, and the reprocessing job queue.                            |
+| **MCP**        | `/mcp`    | Letting an AI assistant read the library over OAuth; served only when `PUBLIC_URL` is https. |
 
 ### The admin page
 
@@ -164,10 +165,51 @@ From the admin page you can:
 - **Devices** — see each enrolled Mac, when it last connected, and **revoke** one.
   Revoking is the only way to cut a Mac off: a password change or a recovery does
   not invalidate device tokens.
+- **Assistants** — see each AI assistant connected through MCP, when it was
+  approved and last used, and **Disconnect** one, which ends its access at once.
+- **Reprocessing** — the job queue's depth and the last few outcomes.
 - **Storage** — see how much the library holds, and **Empty now** to clear space
   the vault no longer needs.
 - **Recover** or change your password and regenerate recovery codes (see
   "Recovery").
+
+### Connecting an assistant
+
+The vault serves a remote **MCP** endpoint at `https://<your-host>/mcp` with
+five read-only tools, the same five as Scribe's own `scribe-mcp` on a Mac:
+`search_transcripts`, `list_meetings`, `get_transcript`, `get_meeting` and
+`list_speakers`. It works whether or not a Mac is awake, and it is on only when
+`PUBLIC_URL` is an `https` origin, which is also the OAuth issuer.
+
+1. In your assistant (for example claude.ai → Settings → Connectors → Add
+   custom connector), add `https://<your-host>/mcp`. The assistant registers
+   itself and sends your browser to the vault's consent page.
+2. Sign in if you are not already, read what the assistant will be able to do,
+   and press **Approve**. The page asks for your password again, every time: it
+   unwraps the Library Key in your browser and seals it under a key only the
+   assistant's authorization code can derive. The vault is sent that sealed key
+   and the code's hash, never the code or the password.
+3. The assistant exchanges the code for tokens. From then on every call it
+   makes lets the vault unwrap the Library Key with that token, decrypt what
+   the call needs in memory, answer, and drop the key.
+
+To cut an assistant off, press **Disconnect** on the admin page. Its grant and
+every token go at once, and the next call it makes fails. Approving the same
+assistant again also invalidates the tokens it held before.
+
+What this does not protect against is a vault that is itself compromised while
+a token is in use: it could read what passes through. What it does protect is
+everything at rest, and everything the moment you disconnect.
+
+### Reprocessing
+
+When Scribe's pipeline improves, a meeting can be run through it again. The
+vault only keeps the queue: a Mac asks for a job when it is idle and on mains
+power, takes it under a lease, fetches the audio, reprocesses, uploads the new
+artifacts and completes the job. The admin page shows how many jobs wait and
+how the last few went. Scribe's worker is a later part of this project; until
+then `npm run vault -- jobs …` drives the queue by hand (see "Trying it without
+Scribe").
 
 ### Connect from Scribe on your Mac
 
@@ -320,8 +362,18 @@ Against a library you created in the browser, join it as a device instead:
 npm run vault -- --url https://<your-domain> enrol --name laptop
 ```
 
-`enrol`, `devices` and `delete <meetingId>` are there too; `npm run vault -- --help`
-lists everything. The device token is cached in `~/.scribe-vault-cli.json` (mode
+`enrol`, `devices`, `delete <meetingId>` and `assistants` (the connected MCP
+clients) are there too, and `jobs` drives the reprocessing queue as a Mac would:
+
+```bash
+npm run vault -- jobs enqueue "$U" --reason "new pipeline"   # ask for a meeting to be redone
+npm run vault -- jobs claim                                 # take the oldest job under a 15-minute lease
+npm run vault -- jobs heartbeat <jobId>                     # keep the lease (a Mac does this every 5 minutes)
+npm run vault -- jobs complete <jobId> [--failed] [--note "…"]
+npm run vault -- jobs list                                  # depth, live leases, recent outcomes
+```
+
+`npm run vault -- --help` lists everything. The device token is cached in `~/.scribe-vault-cli.json` (mode
 `0600`) with the vault's URL and the library and device ids; the password and the
 Secret Key are only ever read from the environment, never written. Delete the file to
 forget the device.

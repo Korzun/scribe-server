@@ -72,8 +72,8 @@ Two further calls the spec left to the builder:
 
 **Script:** `Scripts/export-mcp-conformance.sh [out-dir]` runs `SCRIBE_CONFORMANCE_OUT=<abs path> swift test --filter ConformanceExportTests` and prints the copy command for the vault repo (`test/conformance/`).
 
-- [ ] **Step 1:** Write `Corpus.swift` and `script.json`.
-- [ ] **Step 2:** Write the exporter test; `swift test --filter ConformanceExportTests` passes (early return) without the variable, writes the three files with it.
+- [x] **Step 1:** Write `Corpus.swift` and `script.json`.
+- [x] **Step 2:** Write the exporter test; `swift test --filter ConformanceExportTests` passes (early return) without the variable, writes the three files with it.
 - [ ] **Step 3:** Run the script, copy the output into this repo's `test/conformance/`, commit in both repos.
 
 > This machine has no Swift toolchain and no Scribe checkout under `~/Code`; the Swift files are written against the sources at `~/code/scribe` but are not compiled here. The owner runs Step 3 on the Mac. Task 12's test skips until the output lands.
@@ -95,8 +95,8 @@ Two further calls the spec left to the builder:
 
 **Vectors:** one 32-byte secret in hex → base64url wire form → `sha256(wire)` hex → `k` hex. Both `token-kek.test.ts` and `lib/kdf.test.ts` pin it.
 
-- [ ] Tests first: `tokenWrapAad('L','code','h')` is `L/mcp/code/h`; `deriveTokenKek` matches the vector in Node and in WebCrypto; `resolveMcpBaseUrl` accepts `https://x`, `http://localhost:3000`, rejects `http://192.168.1.2`, `null`, garbage, and strips path/query.
-- [ ] Implement; `npx prisma generate`; the migration applies on a fresh harness.
+- [x] Tests first: `tokenWrapAad('L','code','h')` is `L/mcp/code/h`; `deriveTokenKek` matches the vector in Node and in WebCrypto; `resolveMcpBaseUrl` accepts `https://x`, `http://localhost:3000`, rejects `http://192.168.1.2`, `null`, garbage, and strips path/query.
+- [x] Implement; `npx prisma generate`; the migration applies on a fresh harness.
 
 ---
 
@@ -106,7 +106,7 @@ Two further calls the spec left to the builder:
 
 Port of Bookplate's `tokens.ts` with these changes: `SCOPES = ['library:read']`; `upsertGrant` keys on `(libraryId, clientId)`; `createAuthorizationCode(prisma, { grantId, redirectUri, codeChallenge, resource, codeHash, wrap })` stores what the browser sent and mints nothing; `consumeAuthorizationCode` and `consumeRefreshToken` return the row's `wrap` in the same `DELETE … RETURNING`; `issueTokens(prisma, grantId, scopes, libraryKey, libraryId, now)` derives each token's kek, seals the key under it with the row's AAD, and stores both rows; `withLibraryKey(prisma, { libraryId, rawAccessToken, now }, fn)` looks the token up, opens the wrap, runs `fn(key)` and zeroes the buffer in `finally`; `sweepExpired` as Bookplate.
 
-- [ ] Tests: a code's wrap opens only with the code it was minted for (wrong code → `SealError`); issued tokens' wraps open with the raw tokens and not with each other; `withLibraryKey` yields the key and zeroes it afterwards (the buffer passed to `fn` is all zeros after the call); expired or unknown token rejects; a consumed refresh token cannot be consumed twice.
+- [x] Tests: a code's wrap opens only with the code it was minted for (wrong code → `SealError`); issued tokens' wraps open with the raw tokens and not with each other; `withLibraryKey` yields the key and zeroes it afterwards (the buffer passed to `fn` is all zeros after the call); expired or unknown token rejects; a consumed refresh token cannot be consumed twice.
 
 ---
 
@@ -116,7 +116,7 @@ Port of Bookplate's `tokens.ts` with these changes: `SCOPES = ['library:read']`;
 
 As Bookplate, minus the user: `exchangeAuthorizationCode` consumes the code, derives `k_code` from the presented code, opens the wrap with the code's AAD (a failure is `invalid_grant`, not a 500), issues tokens under the opened key, zeroes it. `exchangeRefreshToken` likewise with the refresh wrap. `verifyAccessToken` returns `AuthInfo` with `extra: { grantId, libraryId }`. `authorize` redirects to `/connect` with the same parameters Bookplate forwards.
 
-- [ ] Tests (translated from Bookplate's `oauth-provider.test.ts`, with codes minted browser-side by a test helper `mintBrowserCode(libraryKey, libraryId)`): register; authorize redirects with every param; unregistered redirect refused; exchange succeeds and the reused code is refused; wrong verifier; wrong redirect; another client's code; refresh rotates and the old one is refused; **a code whose wrap was sealed under a different key is `invalid_grant`**; revoke; metadata documents name `PUBLIC_URL` as the issuer.
+- [x] Tests (translated from Bookplate's `oauth-provider.test.ts`, with codes minted browser-side by a test helper `mintBrowserCode(libraryKey, libraryId)`): register; authorize redirects with every param; unregistered redirect refused; exchange succeeds and the reused code is refused; wrong verifier; wrong redirect; another client's code; refresh rotates and the old one is refused; **a code whose wrap was sealed under a different key is `invalid_grant`**; revoke; metadata documents name `PUBLIC_URL` as the issuer.
 
 ---
 
@@ -131,7 +131,7 @@ As Bookplate, minus the user: `exchangeAuthorizationCode` consumes the code, der
 
 Handler: bearer verified → `touchGrant` → `withLibraryKey(…, key => { reader = createLibraryReader({ prisma, blobStore, libraryId, key }); server = buildMcpServer({ reader, baseUrl }); transport = StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true }); await server.connect(transport); await transport.handleRequest(req, res, req.body) })`, closing server and transport on `res 'close'`.
 
-- [ ] Tests: metadata at the well-known paths (issuer `PUBLIC_URL`); `POST /mcp` without a token is 401 with `resource_metadata`; unknown token 401; `tools/list` through an SDK client names the five tools; **a token whose grant was deleted is 401 and `withLibraryKey` rejects**; with MCP off every MCP path is a JSON 404 and the SPA still serves `/`; `GET /api/v1/status` carries `mcp`.
+- [x] Tests: metadata at the well-known paths (issuer `PUBLIC_URL`); `POST /mcp` without a token is 401 with `resource_metadata`; unknown token 401; `tools/list` through an SDK client names the five tools; **a token whose grant was deleted is 401 and `withLibraryKey` rejects**; with MCP off every MCP path is a JSON 404 and the SPA still serves `/`; `GET /api/v1/status` carries `mcp`.
 
 ---
 
@@ -144,7 +144,7 @@ Handler: bearer verified → `touchGrant` → `withLibraryKey(…, key => { read
 - `GET /api/v1/mcp/grants` (owner) → `{ grants: [{ id, clientName, clientUri, createdAt, lastUsedAt }] }`.
 - `DELETE /api/v1/mcp/grants/:id` (owner) → 204; idempotent.
 
-- [ ] Tests: approve writes a grant and a code row with the given hash and wrap and returns the registered URI with `state`; deny returns `error=access_denied` and writes nothing; an unregistered URI is 400 for both; a second approval for the same client drops the first client's tokens; grants list and disconnect; a device token may also call these (owner auth), a bare request is 401.
+- [x] Tests: approve writes a grant and a code row with the given hash and wrap and returns the registered URI with `state`; deny returns `error=access_denied` and writes nothing; an unregistered URI is 400 for both; a second approval for the same client drops the first client's tokens; grants list and disconnect; a device token may also call these (owner auth), a bare request is 401.
 
 ---
 
@@ -154,7 +154,7 @@ Handler: bearer verified → `touchGrant` → `withLibraryKey(…, key => { read
 
 Port rules: same ordering and tiebreaks; `ResponseBudget.fit` measures `JSON.stringify` of each item with sorted keys (a tiny stable-stringify helper) so the budget counts what the stdio door counts, within a few bytes; dates emitted with `toISOString()`; fields that Swift encodes with `encodeIfPresent` are omitted when `undefined`, and `cluster_id` / `enrolled_voice_id` keep their explicit `null`; `MeetingCursor` is `<startedAt ms>#<id>`; search and speakers cursors are counts; `timestamp()` is `HH:MM:SS`; the instructions text is Scribe's with the one sentence about `scribe://` links kept (it is excluded from conformance either way) and the server name `scribe`, version `APP_VERSION`.
 
-- [ ] Tests translated from `SearchQueryTests`, `MeetingQueryTests`, `TranscriptQueryTests`, `SpeakerQueryTests`, `ResponseBudgetTests`, `TagPayloadTests`, `SummaryPayloadTests`, `ToolCatalogTests` (the lenient-argument and refusal cases, "every declared parameter is one the handler reads", "no payload carries an embedding") over an in-memory `LibraryReader` fake, so they need no vault; plus one test that drives every tool through `POST /mcp` against a real harness with sealed blobs.
+- [x] Tests translated from `SearchQueryTests`, `MeetingQueryTests`, `TranscriptQueryTests`, `SpeakerQueryTests`, `ResponseBudgetTests`, `TagPayloadTests`, `SummaryPayloadTests`, `ToolCatalogTests` (the lenient-argument and refusal cases, "every declared parameter is one the handler reads", "no payload carries an embedding") over an in-memory `LibraryReader` fake, so they need no vault; plus one test that drives every tool through `POST /mcp` against a real harness with sealed blobs.
 
 ---
 
@@ -172,7 +172,7 @@ Reads every `app/server/**/*.ts` outside tests and `node_modules`; asserts (a) n
 
 Routes: `POST /api/v1/jobs {meetingId, reason}` → 201 (or 200 when a queued job for that meeting exists), 404 for an unknown or deleted meeting; `GET /api/v1/jobs` → `{ depth, leased, recent[10] }`; `POST /api/v1/jobs/claim` → 200 `{ job }` or 204; `POST /api/v1/jobs/:id/heartbeat` → 200 `{ leaseExpiresAt }`, 409 when not this device's live lease; `POST /api/v1/jobs/:id/complete {outcome:'ok'|'failed', note?}` → 200, same 409. Claim runs under `withKeyLock('jobs')`: the oldest queued or lapsed job; a lapse increments `attempts`, and the third lapse fails the job instead of handing it out.
 
-- [ ] Tests: enqueue, dedupe, unknown meeting; claim order and 204 on empty; two concurrent claims hand out two different jobs, or one job and a 204; heartbeat extends; after the lease lapses another device claims it and the first device's heartbeat and complete are 409; the third lapse fails the job; complete records outcome and the admin summary shows depth and recent outcomes; session callers may enqueue and list but not claim (401).
+- [x] Tests: enqueue, dedupe, unknown meeting; claim order and 204 on empty; two concurrent claims hand out two different jobs, or one job and a 204; heartbeat extends; after the lease lapses another device claims it and the first device's heartbeat and complete are 409; the third lapse fails the job; complete records outcome and the admin summary shows depth and recent outcomes; session callers may enqueue and list but not claim (401).
 
 ---
 
@@ -184,7 +184,7 @@ Routes: `POST /api/v1/jobs {meetingId, reason}` → 201 (or 200 when a queued jo
 
 Page copy: title *Connect {clientName}?*; lead *This assistant will be able to read your meetings through your vault while connected. Disconnect it here at any time.*; a line *It can search and read transcripts, meetings and speakers. It cannot change anything.*; Approve opens `PasswordPromptModal` (title *Unlock for this assistant*, confirm *Approve*, `askSecretKey` when none is remembered) with the explanation *Your password unwraps the Library Key here, in your browser, so the vault can answer the assistant.* Deny needs no password. Failures use `SecurityCard`'s wording.
 
-- [ ] Tests: invalid link; unknown client; Approve asks for the password, posts `codeHash` and a `wrap` that opens under the derived key (the test derives it from the generated code captured off the final URL), and navigates to the URL with `code` and `state`; Deny navigates to `error=access_denied` without a password; the route is protected (unauthenticated → `/login` with `from` preserving the query string, which `UnprotectedRoute` already handles).
+- [x] Tests: invalid link; unknown client; Approve asks for the password, posts `codeHash` and a `wrap` that opens under the derived key (the test derives it from the generated code captured off the final URL), and navigates to the URL with `code` and `state`; Deny navigates to `error=access_denied` without a password; the route is protected (unauthenticated → `/login` with `from` preserving the query string, which `UnprotectedRoute` already handles).
 
 ---
 
@@ -194,7 +194,7 @@ Page copy: title *Connect {clientName}?*; lead *This assistant will be able to r
 
 Assistants: one `CardRow` per grant (name, link when `clientUri`, *Connected <date> · Last used <relative>*), Disconnect with `ConfirmModal` (*Disconnect {name}? It can no longer read your meetings. Its tokens stop working now.*). Empty: *No assistants connected.*, and when `status.mcp` is false a second line *Set PUBLIC_URL to an https origin to turn the MCP endpoint on.* Jobs: *Queue depth* and *In progress* as a `dl` like `StorageCard`, then up to ten recent outcomes (meeting id shortened to 8 characters, outcome, relative time). Empty: *No jobs yet.*
 
-- [ ] Tests mirror `device-list` and `dashboard` suites: rows render from the API, Disconnect confirms then `DELETE`s then refetches, failure toasts, the MCP-off hint.
+- [x] Tests mirror `device-list` and `dashboard` suites: rows render from the API, Disconnect confirms then `DELETE`s then refetches, failure toasts, the MCP-off hint.
 
 ---
 
