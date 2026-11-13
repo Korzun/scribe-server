@@ -161,7 +161,7 @@ again only when a reset is needed.
 ## Development
 
 The repository is an npm workspace monorepo (`app/server` — Express + Prisma/SQLite;
-`app/client` — React + Vite). A `Makefile` and `docker-compose.yml` wrap the common
+`app/client` — React + Vite). A `Makefile` and `docker-compose.dev.yml` wrap the common
 tasks.
 
 ```bash

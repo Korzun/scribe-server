@@ -1,40 +1,26 @@
-name: scribe-dev
-
+# The vault as one container. `cp .env.example .env`, fill in SETUP_CODE and
+# PUBLIC_URL, then `docker compose up -d`. Every value here falls back to the
+# image's default when the .env line is missing or empty.
+#
+# The dev stack with live reload is docker-compose.dev.yml (`make dev`).
 services:
-  server:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./app/server:/scribe/app/server
-      # Keep the image's install for app/server; the bind mount above would
-      # otherwise shadow it with the host's node_modules, hiding any dependency
-      # that isn't hoisted to the root /scribe/node_modules.
-      - /scribe/app/server/node_modules
-      - ./dev-media:/media
-      # Holds options.json (the dev setup code, written by `make dev`) and the
-      # SQLite database.
-      - ./dev-data:/data
+  scribe:
+    build: .
+    image: ghcr.io/korzun/scribe-server:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
     environment:
-      # Optional: `PUBLIC_URL=http://localhost:<client port> make dev` sets the
-      # origin the vault advertises, for a local end-to-end connect flow.
       PUBLIC_URL: ${PUBLIC_URL:-}
-    ports:
-      - "${SERVER_PORT:-3000}:3000"
-
-  client:
-    build:
-      context: ./app/client
-      dockerfile: Dockerfile.dev
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
+      SETUP_CODE: ${SETUP_CODE:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
-      - ./app/client/src:/app/src
-      - ./app/client/index.html:/app/index.html
-      - ./app/client/vite.config.ts:/app/vite.config.ts
-      - ./app/client/tsconfig.json:/app/tsconfig.json
-    environment:
-      API_URL: http://server:3000
-      DOCKER: "true"
-    ports:
-      - "${CLIENT_PORT:-5173}:5173"
-    depends_on:
-      - server
+      - scribe-data:/data
+
+# One volume holds everything: the database, in-flight upload parts and the
+# encrypted blobs. To keep blobs on a bigger disk, add a second mount (for
+# example `- /mnt/big/scribe-blobs:/blobs`) and set `BLOBS_DIR: /blobs` above.
+# The health check is built into the image; Compose reports it as `healthy`.
+volumes:
+  scribe-data:

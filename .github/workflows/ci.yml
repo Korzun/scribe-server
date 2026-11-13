@@ -39,6 +39,10 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run lint
+      - name: Validate compose files
+        run: |
+          docker compose -f docker-compose.yml config --quiet
+          docker compose -f docker-compose.dev.yml config --quiet
 
   test-client:
     name: Client tests

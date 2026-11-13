@@ -1,0 +1,40 @@
+name: scribe-dev
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./app/server:/scribe/app/server
+      # Keep the image's install for app/server; the bind mount above would
+      # otherwise shadow it with the host's node_modules, hiding any dependency
+      # that isn't hoisted to the root /scribe/node_modules.
+      - /scribe/app/server/node_modules
+      - ./dev-media:/media
+      # Holds options.json (the dev setup code, written by `make dev`) and the
+      # SQLite database.
+      - ./dev-data:/data
+    environment:
+      # Optional: `PUBLIC_URL=http://localhost:<client port> make dev` sets the
+      # origin the vault advertises, for a local end-to-end connect flow.
+      PUBLIC_URL: ${PUBLIC_URL:-}
+    ports:
+      - "${SERVER_PORT:-3000}:3000"
+
+  client:
+    build:
+      context: ./app/client
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./app/client/src:/app/src
+      - ./app/client/index.html:/app/index.html
+      - ./app/client/vite.config.ts:/app/vite.config.ts
+      - ./app/client/tsconfig.json:/app/tsconfig.json
+    environment:
+      API_URL: http://server:3000
+      DOCKER: "true"
+    ports:
+      - "${CLIENT_PORT:-5173}:5173"
+    depends_on:
+      - server
