@@ -1,0 +1,29 @@
+import type { PrismaClient } from '@prisma/client';
+import { Router } from 'express';
+
+export type StatusRouterDeps = {
+  prisma: PrismaClient;
+  version: string;
+};
+
+/**
+ * `GET /api/v1/status`, unauthenticated (like library creation, the salts and
+ * the keys-lost reset in routes/library.ts). It tells a client
+ * whether this vault already holds a library (so the app knows whether to
+ * offer setup or sign-in) and which version is running. Nothing about the
+ * library's contents or owner is revealed.
+ */
+export function createStatusRouter({ prisma, version }: StatusRouterDeps): Router {
+  const router = Router();
+
+  router.get('/', async (_req, res, next) => {
+    try {
+      const libraryExists = (await prisma.library.count()) > 0;
+      res.json({ libraryExists, version });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  return router;
+}

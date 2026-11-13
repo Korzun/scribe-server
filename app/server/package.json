@@ -1,0 +1,46 @@
+{
+  "name": "scribe-server",
+  "private": true,
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
+    "postinstall": "npm run prisma:generate || true",
+    "build": "npm run prisma:generate && tsc",
+    "start": "node dist/index.js",
+    "dev": "NODE_ENV=development nodemon --watch . --ext ts,json --exec tsx index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "oxlint && oxfmt --check \"**/*.ts\" && tsc --noEmit && tsc --noEmit -p tsconfig.test.json && npm run lint:cli",
+    "lint:cli": "tsc -p tsconfig.cli.json && cd ../../scripts && oxlint -c ../app/server/.oxlintrc.json vault-cli.ts && oxfmt --check vault-cli.ts",
+    "lint:fix": "oxlint --fix && oxfmt \"**/*.ts\" && cd ../../scripts && oxlint --fix -c ../app/server/.oxlintrc.json vault-cli.ts && oxfmt vault-cli.ts",
+    "vault": "tsx ../../scripts/vault-cli.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "argon2": "^0.44.0",
+    "better-sqlite3": "^12.9.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "nanoid": "^6.0.2",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.11.20",
+    "@types/supertest": "^7.2.0",
+    "nodemon": "^3.1.14",
+    "oxfmt": "^0.74.0",
+    "oxlint": "^1.74.0",
+    "prisma": "^7.10.1",
+    "supertest": "^7.2.2",
+    "tsx": "^4.20.6",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}

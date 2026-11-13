@@ -1,0 +1,10 @@
+.superpowers/
+.claude/worktrees/
+.claude/settings.local.json
+node_modules/
+**/.DS_Store
+*.sqlite
+/app/server/dist/
+/app/client/dist/
+dev-data/
+dev-media/

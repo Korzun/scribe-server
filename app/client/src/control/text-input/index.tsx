@@ -1,0 +1,124 @@
+import cx from 'classnames';
+import { useCallback, useState } from 'react';
+
+import { IconProps } from '../../icon';
+import { Button } from '../button';
+import { useStyle } from './style';
+
+type Action = {
+  icon: React.ComponentType<IconProps>;
+  action: () => void;
+  danger?: boolean;
+};
+export type TextInputProps = {
+  action?: Action;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoComplete?: React.HTMLInputAutoCompleteAttribute | undefined;
+  label?: string;
+  layout?: 'horizontal' | 'vertical' | 'inline';
+  maxLength?: number;
+  name: string;
+  onChange?: (newValue: string | undefined) => void;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  onValidChange?: (fieldName: string, newValid: boolean) => void;
+  password?: boolean;
+  placeholder?: string;
+  validate?: (newValue: string) => boolean;
+  value: string | undefined;
+};
+
+export const TextInput = ({
+  autoCapitalize,
+  autoComplete,
+  action,
+  label,
+  layout = 'horizontal',
+  maxLength,
+  name,
+  onChange = () => {},
+  onKeyDown,
+  onValidChange = () => {},
+  password = false,
+  placeholder,
+  validate = () => true,
+  value = '',
+}: TextInputProps) => {
+  const style = useStyle();
+
+  const [isValid, setIsValid] = useState<boolean>(true);
+  const [internalValue, setInternalValue] = useState<string | undefined>(value);
+  const [prevValue, setPrevValue] = useState<string | undefined>(value);
+
+  const handleValueChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = event.target.value;
+      setInternalValue(newValue);
+      if (validate(newValue)) {
+        if (isValid === false) {
+          setIsValid(true);
+          onValidChange(name, true);
+        }
+        onChange(newValue === '' ? undefined : newValue);
+      } else {
+        if (isValid === true) {
+          setIsValid(false);
+          onValidChange(name, false);
+        }
+      }
+    },
+    [isValid, name, onChange, onValidChange, validate]
+  );
+
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setInternalValue(value);
+  }
+
+  const currentLength = (internalValue ?? '').length;
+  const remaining = maxLength !== undefined ? maxLength - currentLength : undefined;
+  // Show the counter only as the field approaches its limit. Scale the threshold
+  // to the field size (10% of the max, minimum 10 chars) so a short field like a
+  // name doesn't show it constantly the way a large description field would.
+  const showCounter =
+    remaining !== undefined && remaining <= Math.max(Math.floor((maxLength ?? 0) * 0.1), 10);
+
+  return (
+    <div className={cx(style.root, style[layout])}>
+      {label && <label className={cx(style.label, { [style.danger]: !isValid })}>{label}</label>}
+      <div className={style.inputContainer}>
+        <input
+          autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          className={cx(style.input, {
+            [style.danger]: !isValid,
+            [style.isAction]: action !== undefined,
+          })}
+          maxLength={maxLength}
+          name={name}
+          onChange={handleValueChange}
+          onKeyDown={onKeyDown}
+          placeholder={placeholder}
+          type={password ? 'password' : 'text'}
+          value={internalValue}
+        />
+        {action && (
+          <div className={cx(style.action)}>
+            <Button type="link" danger={action.danger}>
+              <action.icon height={20} width={20} strokeWidth={2} />
+            </Button>
+          </div>
+        )}
+        {showCounter && (
+          <span
+            className={cx(
+              style.counter,
+              remaining !== undefined && remaining <= 0 && style.counterDanger
+            )}
+          >
+            {currentLength}/{maxLength}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
