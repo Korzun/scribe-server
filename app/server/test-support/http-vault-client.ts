@@ -100,7 +100,8 @@ export type CreateLibraryRequest = {
   authKey: string;
   passwordWrap: string;
   recoveryCodes: Array<{ authKey: string; wrap: string }>;
-  device: { name: string };
+  /** The first device. Scribe sends one; the browser's setup page sends none. */
+  device?: { name: string };
 };
 
 /**

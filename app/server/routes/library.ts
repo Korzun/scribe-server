@@ -68,7 +68,8 @@ const createLibraryBody = z.object({
   authKey: base64Bytes(32, 32),
   passwordWrap: sealedWrap(),
   recoveryCodes: z.array(z.object({ authKey: base64Bytes(32, 32), wrap: sealedWrap() })).length(10),
-  device: z.object({ name: z.string().trim().min(1).max(100) }),
+  // Scribe names its first device here; the browser's setup page sends none.
+  device: z.object({ name: z.string().trim().min(1).max(100) }).optional(),
 });
 
 const deleteLibraryBody = z.object({
@@ -205,11 +206,15 @@ export function createLibraryRouter({
           },
           now()
         );
-        res.status(201).json({
-          libraryId: created.libraryId,
-          deviceId: created.deviceId,
-          deviceToken: created.token,
-        });
+        res.status(201).json(
+          created.deviceId === undefined
+            ? { libraryId: created.libraryId }
+            : {
+                libraryId: created.libraryId,
+                deviceId: created.deviceId,
+                deviceToken: created.token,
+              }
+        );
       } catch (err) {
         if (err instanceof LibraryExistsError) {
           res.status(409).json({ error: 'Library exists' });

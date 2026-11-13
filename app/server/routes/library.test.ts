@@ -85,6 +85,37 @@ describe('POST /api/v1/library', () => {
     expect(res.body).toEqual({ error: 'Wrong setup code' });
   });
 
+  it('creates the library without a device when none is given (the browser is not a device)', async () => {
+    writeSetupCode(h.dataDir, 'browser-setup-code-123');
+    const { device: _device, ...body } = cheapBody('browser-setup-code-123');
+
+    const res = await client.createLibrary(body);
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual({ libraryId: body.libraryId });
+    expect(await h.prisma.device.count()).toBe(0);
+    expect(await h.prisma.recoveryCode.count()).toBe(10);
+    expect((await client.status()).body.libraryExists).toBe(true);
+  });
+
+  it('refuses creation and reset with 403 when SETUP_CODE is empty and options.json is absent', async () => {
+    process.env.SETUP_CODE = '';
+    writeSetupCode(h.dataDir, null);
+    try {
+      const created = await client.createLibrary(cheapBody('anything-at-all-12'));
+      expect(created.status).toBe(403);
+      expect(created.body).toEqual({ error: 'Setup code required' });
+
+      const reset = await client.deleteLibrary({
+        setupCode: 'anything-at-all-12',
+        confirm: 'DELETE',
+      });
+      expect(reset.status).toBe(403);
+    } finally {
+      delete process.env.SETUP_CODE;
+    }
+  });
+
   it('a configured code of 11 characters is treated as unset: 403 Setup code required, and a warning without the code', async () => {
     writeSetupCode(h.dataDir, 'eleven-char');
     warn.mockClear();
@@ -114,7 +145,11 @@ describe('POST /api/v1/library', () => {
     writeSetupCode(h.dataDir, 'test-setup-code');
     const body = cheapBody('test-setup-code');
 
-    const missing = await client.createLibrary({ ...body, device: undefined });
+    // `device` is optional (the browser sends none), so the missing field here is the id.
+    const missing = await client.createLibrary({
+      ...body,
+      libraryId: undefined as unknown as string,
+    });
     const notTen = await client.createLibrary({
       ...body,
       recoveryCodes: body.recoveryCodes.slice(0, 9),

@@ -86,10 +86,12 @@ describe('createLibrary', () => {
     const i = input();
 
     const { deviceId, token } = await createLibrary(h.prisma, i, 12_345);
+    expect(deviceId).toBeDefined();
+    expect(token).toBeDefined();
 
     const device = await h.prisma.device.findUniqueOrThrow({ where: { id: deviceId } });
     expect(device).toMatchObject({ libraryId: i.libraryId, name: 'Mac', createdAt: 12_345 });
-    expect(device.tokenHash).toBe(crypto.createHash('sha256').update(token).digest('hex'));
+    expect(device.tokenHash).toBe(crypto.createHash('sha256').update(token!).digest('hex'));
     expect(
       (await h.prisma.library.findUniqueOrThrow({ where: { id: i.libraryId } })).createdAt
     ).toBe(12_345);

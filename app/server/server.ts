@@ -63,7 +63,10 @@ export function createServer({
   server.use(express.urlencoded({ extended: false }));
   server.use(cookieParser());
 
-  server.use('/api/v1/status', createStatusRouter({ prisma, version: APP_VERSION }));
+  server.use(
+    '/api/v1/status',
+    createStatusRouter({ prisma, version: APP_VERSION, publicUrl: config.publicUrl })
+  );
 
   server.use('/api/v1', createLibraryRouter({ prisma, jwtSecret, config, blobStore, gc, now }));
   server.use('/api/v1', createLibraryBlobsRouter({ prisma, jwtSecret, blobStore, now }));

@@ -43,7 +43,9 @@ export type Harness = {
  * the same stack production runs, minus the network listener. Call `close()`
  * in `afterEach`/`afterAll`.
  */
-export async function createHarness(): Promise<Harness> {
+export async function createHarness(
+  overrides: Partial<Pick<AppConfig, 'publicUrl' | 'trustProxyHops' | 'logLevel'>> = {}
+): Promise<Harness> {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'scribe-harness-'));
   const dataDir = path.join(root, 'data');
   const blobsDir = path.join(root, 'blobs');
@@ -57,6 +59,7 @@ export async function createHarness(): Promise<Harness> {
     publicUrl: null,
     trustProxyHops: 0,
     logLevel: 'error',
+    ...overrides,
   };
 
   const prisma = createPrismaClient(`file:${path.join(dataDir, 'db.sqlite')}`);

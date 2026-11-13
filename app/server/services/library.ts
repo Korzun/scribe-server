@@ -20,8 +20,12 @@ export type CreateLibraryInput = {
   authKey: Buffer;
   passwordWrap: Buffer;
   recoveryCodes: Array<{ authKey: Buffer; wrap: Buffer }>;
-  /** The first device, created in the same transaction so a half-made vault cannot exist. */
-  device: { name: string };
+  /**
+   * The first device, created in the same transaction so a half-made vault
+   * cannot exist. Scribe sends one; the browser's setup page sends none, and
+   * then no device row is created and no token is minted.
+   */
+  device?: { name: string };
 };
 
 /** A vault holds exactly one library; a second creation is refused. */
@@ -58,7 +62,7 @@ export async function createLibrary(
   prisma: PrismaClient,
   input: CreateLibraryInput,
   now: number
-): Promise<{ libraryId: string; deviceId: string; token: string }> {
+): Promise<{ libraryId: string; deviceId?: string; token?: string }> {
   if (input.recoveryCodes.length !== RECOVERY_CODE_COUNT) {
     throw new Error(
       `A library needs exactly ten recovery codes, got ${input.recoveryCodes.length}`
@@ -71,8 +75,10 @@ export async function createLibrary(
   const codeVerifiers: string[] = [];
   for (const code of input.recoveryCodes) codeVerifiers.push(await hashAuthKey(code.authKey));
 
-  const { token, tokenHash } = newDeviceToken();
-  const deviceId = generateId();
+  const device =
+    input.device === undefined
+      ? null
+      : { name: input.device.name, id: generateId(), ...newDeviceToken() };
 
   // Shared vault gate: a creation never lands between a reset's wipe and its
   // file removal.
@@ -97,20 +103,26 @@ export async function createLibrary(
           wrap: bytes(c.wrap),
         })),
       });
-      await tx.device.create({
-        data: {
-          id: deviceId,
-          libraryId: input.libraryId,
-          name: input.device.name,
-          tokenHash,
-          createdAt: now,
-        },
-      });
+      if (device !== null) {
+        await tx.device.create({
+          data: {
+            id: device.id,
+            libraryId: input.libraryId,
+            name: device.name,
+            tokenHash: device.tokenHash,
+            createdAt: now,
+          },
+        });
+      }
     })
   );
 
-  log.info(`Library created: ${input.libraryId}, first device ${deviceId}`);
-  return { libraryId: input.libraryId, deviceId, token };
+  if (device === null) {
+    log.info(`Library created: ${input.libraryId}, no device yet`);
+    return { libraryId: input.libraryId };
+  }
+  log.info(`Library created: ${input.libraryId}, first device ${device.id}`);
+  return { libraryId: input.libraryId, deviceId: device.id, token: device.token };
 }
 
 /** The vault's library, or `null` before setup. */
