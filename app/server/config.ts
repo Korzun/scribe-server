@@ -64,6 +64,18 @@ function trimmed(raw: string | undefined): string {
 }
 
 /**
+ * An environment variable, trimmed, or `undefined` when it is missing or
+ * blank. A blank counts as unset because a compose file's `${VAR:-}` hands the
+ * container an empty string for every variable the operator left out, and an
+ * empty string must fall through to `options.json` and then the default rather
+ * than override them.
+ */
+function env(name: string): string | undefined {
+  const value = trimmed(process.env[name]);
+  return value === '' ? undefined : value;
+}
+
+/**
  * Accepts only an absolute http(s) origin, and returns it without a trailing
  * slash so callers can concatenate a path unconditionally. Anything else is
  * `null` WITH A WARNING rather than a throw: a malformed value degrades to
@@ -87,9 +99,13 @@ function parsePublicUrl(raw: string): string | null {
 }
 
 export function loadConfig(): AppConfig {
-  const dataDir = process.env.DATA_DIR ?? '/data';
+  const dataDir = env('DATA_DIR') ?? '/data';
   const optionsPath = path.join(dataDir, 'options.json');
 
+  // True once options.json has been read: only then does `library_dir` (and its
+  // `/media` home, a Home Assistant mount) mean anything. A plain container has
+  // no options.json and keeps its blobs beside the database, under one volume.
+  let hasOptions = false;
   let options: Options = {
     library_dir: 'scribe',
     public_url: '',
@@ -108,35 +124,44 @@ export function loadConfig(): AppConfig {
         setup_code: parsed.setup_code ?? options.setup_code,
         log_level: parsed.log_level ?? options.log_level,
       };
+      hasOptions = true;
     } catch {
       log.warn(`Could not parse ${optionsPath}, using defaults`);
     }
   }
 
+  // Every knob resolves the same way: environment variable, then options.json,
+  // then the default. A blank environment variable is unset (see `env`).
   return {
     dataDir,
-    blobsDir: process.env.BLOBS_DIR ?? resolveBlobsDir(options.library_dir),
-    port: parseInt(process.env.PORT ?? '3000', 10),
-    // Env var (bare-metal/dev) takes precedence over the add-on option: the
-    // "env overrides options.json" convention used for every knob here.
-    publicUrl: parsePublicUrl(trimmed(process.env.PUBLIC_URL ?? options.public_url)),
-    trustProxyHops: parseTrustProxyHops(process.env.TRUST_PROXY_HOPS ?? options.trust_proxy_hops),
-    logLevel: process.env.LOG_LEVEL ?? options.log_level,
+    blobsDir:
+      env('BLOBS_DIR') ??
+      (hasOptions ? resolveBlobsDir(options.library_dir) : path.join(dataDir, 'blobs')),
+    port: parseInt(env('PORT') ?? '3000', 10),
+    publicUrl: parsePublicUrl(env('PUBLIC_URL') ?? trimmed(options.public_url)),
+    trustProxyHops: parseTrustProxyHops(env('TRUST_PROXY_HOPS') ?? options.trust_proxy_hops),
+    logLevel: env('LOG_LEVEL') ?? options.log_level,
   };
 }
 
 /**
- * The setup code an operator typed into the add-on's configuration, or `null`
- * when none is set. Opens `options.json` on EVERY call and caches nothing:
- * the operator can set, change or clear the code in the HA UI and the next
- * enrolment attempt must see it without restarting the add-on, and a cached
- * copy would keep honouring a code the operator had already revoked.
+ * The setup code the operator configured, or `null` when none is set.
+ *
+ * `SETUP_CODE` in the environment wins. It is fixed for the life of the
+ * container, so in Docker "change the code" means change the variable and
+ * redeploy, and "close setup" means remove it and redeploy. When it is unset
+ * (or blank), `options.json` is opened on EVERY call and nothing is cached:
+ * a Home Assistant operator can set, change or clear the code in the add-on's
+ * configuration and the next attempt must see it without a restart, and a
+ * cached copy would keep honouring a code the operator had already revoked.
  *
  * A missing file, unparsable JSON, a missing key and a blank value all mean
  * "no code" (`null`) — enrolment stays closed rather than failing open. The
  * value is a secret and is never logged, not even on a parse failure.
  */
 export function readSetupCode(dataDir: string): string | null {
+  const fromEnv = env('SETUP_CODE');
+  if (fromEnv !== undefined) return fromEnv;
   try {
     const raw = fs.readFileSync(path.join(dataDir, 'options.json'), 'utf-8');
     const parsed = JSON.parse(raw) as Partial<Options>;

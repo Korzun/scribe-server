@@ -7,7 +7,7 @@
 export interface AppConfig {
   /** Directory holding `options.json` and the SQLite database. */
   dataDir: string;
-  /** Where encrypted blobs live on disk; always inside `/media` unless `BLOBS_DIR` overrides. */
+  /** Where encrypted blobs live: `BLOBS_DIR`, else `/media/<library_dir>/blobs` under the add-on, else `<dataDir>/blobs`. */
   blobsDir: string;
   port: number;
   /**

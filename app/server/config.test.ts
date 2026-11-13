@@ -20,6 +20,8 @@ beforeEach(() => {
   delete process.env.BLOBS_DIR;
   delete process.env.PUBLIC_URL;
   delete process.env.TRUST_PROXY_HOPS;
+  delete process.env.SETUP_CODE;
+  delete process.env.LOG_LEVEL;
 });
 
 afterEach(() => {
@@ -91,6 +93,61 @@ describe('readSetupCode', () => {
     writeOptions({ setup_code: 'second' });
     expect(readSetupCode(dataDir)).toBe('second');
     writeOptions({ setup_code: '' });
+    expect(readSetupCode(dataDir)).toBeNull();
+  });
+});
+
+describe('loadConfig (environment first, then options.json, then defaults)', () => {
+  it('defaults blobsDir to <DATA_DIR>/blobs when there is no options.json', () => {
+    expect(loadConfig().blobsDir).toBe(path.join(dataDir, 'blobs'));
+  });
+
+  it('treats an empty BLOBS_DIR as unset', () => {
+    process.env.BLOBS_DIR = '   ';
+    writeOptions({ library_dir: 'scribe' });
+    expect(loadConfig().blobsDir).toBe('/media/scribe/blobs');
+  });
+
+  it('treats empty PUBLIC_URL, TRUST_PROXY_HOPS and LOG_LEVEL as unset', () => {
+    process.env.PUBLIC_URL = '';
+    process.env.TRUST_PROXY_HOPS = '';
+    process.env.LOG_LEVEL = '';
+    writeOptions({
+      public_url: 'https://vault.example.com',
+      trust_proxy_hops: 2,
+      log_level: 'warn',
+    });
+    const config = loadConfig();
+    expect(config.publicUrl).toBe('https://vault.example.com');
+    expect(config.trustProxyHops).toBe(2);
+    expect(config.logLevel).toBe('warn');
+  });
+
+  it('falls back to defaults when env is empty and options.json is absent', () => {
+    process.env.LOG_LEVEL = '';
+    process.env.TRUST_PROXY_HOPS = '';
+    const config = loadConfig();
+    expect(config.logLevel).toBe('info');
+    expect(config.trustProxyHops).toBe(0);
+    expect(config.publicUrl).toBeNull();
+  });
+});
+
+describe('readSetupCode (SETUP_CODE first)', () => {
+  it('prefers SETUP_CODE from the environment over options.json', () => {
+    writeOptions({ setup_code: 'from-options-json' });
+    process.env.SETUP_CODE = ' from-environment ';
+    expect(readSetupCode(dataDir)).toBe('from-environment');
+  });
+
+  it('treats an empty SETUP_CODE as unset and reads options.json', () => {
+    process.env.SETUP_CODE = '';
+    writeOptions({ setup_code: 'from-options-json' });
+    expect(readSetupCode(dataDir)).toBe('from-options-json');
+  });
+
+  it('returns null when SETUP_CODE is empty and options.json is absent', () => {
+    process.env.SETUP_CODE = '';
     expect(readSetupCode(dataDir)).toBeNull();
   });
 });

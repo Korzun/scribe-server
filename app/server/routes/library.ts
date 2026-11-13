@@ -97,8 +97,8 @@ export const MIN_SETUP_CODE_LENGTH = 12;
 
 /**
  * The live setup code check shared by library creation and the keys-lost
- * reset (spec §4, §9): read from options.json at the moment of the request,
- * never cached. A configured code shorter than `MIN_SETUP_CODE_LENGTH`
+ * reset (spec §4, §9): `SETUP_CODE` from the environment, else options.json
+ * read at the moment of the request, never cached. A configured code shorter than `MIN_SETUP_CODE_LENGTH`
  * characters counts as unset, and says so in the log (never the code itself).
  * `null` when it passes; otherwise the 403 body to send.
  */
@@ -107,7 +107,7 @@ function checkSetupCode(dataDir: string, presented: string): { error: string } |
   if (expected === null) return { error: 'Setup code required' };
   if (Array.from(expected).length < MIN_SETUP_CODE_LENGTH) {
     log.warn(
-      `setup_code is shorter than ${MIN_SETUP_CODE_LENGTH} characters and is ignored; set a longer one in the add-on configuration`
+      `setup_code is shorter than ${MIN_SETUP_CODE_LENGTH} characters and is ignored; set a longer one in SETUP_CODE or the add-on configuration`
     );
     return { error: 'Setup code required' };
   }

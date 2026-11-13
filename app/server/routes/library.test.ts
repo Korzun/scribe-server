@@ -99,7 +99,7 @@ describe('POST /api/v1/library', () => {
       lines.filter(
         (l) =>
           l ===
-          'setup_code is shorter than 12 characters and is ignored; set a longer one in the add-on configuration'
+          'setup_code is shorter than 12 characters and is ignored; set a longer one in SETUP_CODE or the add-on configuration'
       )
     ).toHaveLength(1);
     expect(lines.join('\n')).not.toContain('eleven-char');
@@ -442,7 +442,7 @@ describe('DELETE /api/v1/library (keys lost)', () => {
       lines.filter(
         (l) =>
           l ===
-          'setup_code is shorter than 12 characters and is ignored; set a longer one in the add-on configuration'
+          'setup_code is shorter than 12 characters and is ignored; set a longer one in SETUP_CODE or the add-on configuration'
       )
     ).toHaveLength(1);
     expect(lines.join('\n')).not.toContain('eleven-char');
