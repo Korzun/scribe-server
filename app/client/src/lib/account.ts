@@ -45,7 +45,7 @@ const newSalt = () => crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
  * the keys were wrong; anything else (no WebCrypto outside a secure context,
  * a malformed base64 field) means the browser cannot do this here.
  */
-async function guarded<T>(flow: () => Promise<ApiResult<T>>): Promise<ApiResult<T>> {
+export async function guarded<T>(flow: () => Promise<ApiResult<T>>): Promise<ApiResult<T>> {
   try {
     return await flow();
   } catch (err) {
@@ -54,7 +54,10 @@ async function guarded<T>(flow: () => Promise<ApiResult<T>>): Promise<ApiResult<
 }
 
 /** Derives the current keys and unwraps the Library Key; fails before any write. */
-async function unlock(password: string, secretKey: Uint8Array): Promise<ApiResult<Unlocked>> {
+export async function unlock(
+  password: string,
+  secretKey: Uint8Array
+): Promise<ApiResult<Unlocked>> {
   const salts = await api<Salts>('/api/v1/library/salts');
   if (!salts.ok) return salts;
   const { kek, authKey } = await deriveAccountKeys({

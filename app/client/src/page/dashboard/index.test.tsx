@@ -63,10 +63,52 @@ const calls = (url: string, method: string) =>
     ([u, init]) => u === url && ((init as RequestInit | undefined)?.method ?? 'GET') === method
   );
 
+const grants = () => [
+  {
+    id: 'g1',
+    clientId: 'c1',
+    clientName: 'Claude',
+    clientUri: 'https://claude.ai',
+    createdAt: NOW - 2e9,
+    lastUsedAt: NOW - 3 * 3600_000,
+  },
+];
+
+const jobs = () => ({
+  depth: 2,
+  leased: 1,
+  recent: [
+    {
+      id: 'j1',
+      meetingId: '0f1e2d3c-4b5a-4978-8796-a5b4c3d2e1f0',
+      reason: 'new pipeline',
+      requestedBy: 'session',
+      status: 'done',
+      attempts: 1,
+      leaseDeviceId: null,
+      leaseExpiresAt: null,
+      createdAt: NOW - 7200_000,
+      startedAt: NOW - 7000_000,
+      finishedAt: NOW - 3600_000,
+      outcome: 'ok',
+      note: null,
+    },
+  ],
+});
+
 beforeEach(() => {
   routes = {
     '/api/v1/library': () => json(200, library()),
     '/api/v1/devices': () => json(200, { devices: devices() }),
+    '/api/v1/mcp/grants': () => json(200, { grants: grants() }),
+    '/api/v1/jobs': () => json(200, jobs()),
+    '/api/v1/status': () =>
+      json(200, {
+        libraryExists: true,
+        version: '0',
+        publicUrl: 'https://vault.example',
+        mcp: true,
+      }),
   };
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const route = routes[url] ?? routes[url.split('?')[0]];
@@ -253,6 +295,58 @@ describe('DashboardPage', () => {
     await user.click(screen.getByRole('button', { name: 'Empty now' }));
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Empty now' }));
     expect(await screen.findByText("Couldn't empty the deleted meetings")).toBeInTheDocument();
+  });
+
+  it('renders the connected assistants and the job queue from the API', async () => {
+    renderPage();
+    expect(await screen.findByRole('link', { name: 'Claude' })).toHaveAttribute(
+      'href',
+      'https://claude.ai'
+    );
+    expect(screen.getByText(/Last used 3 hours ago/)).toBeInTheDocument();
+    expect(screen.getByText('Waiting').nextElementSibling).toHaveTextContent('2');
+    expect(screen.getByText('In progress').nextElementSibling).toHaveTextContent('1');
+    expect(screen.getByText('Done')).toBeInTheDocument();
+    expect(screen.getByText('0f1e2d3c…')).toBeInTheDocument();
+  });
+
+  it('disconnecting asks for confirmation and calls DELETE then refetches', async () => {
+    routes['/api/v1/mcp/grants/g1'] = () => new Response(null, { status: 204 });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Disconnect Claude' }));
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        'Disconnect Claude? It can no longer read your meetings. Its tokens stop working now.'
+      )
+    ).toBeInTheDocument();
+    expect(calls('/api/v1/mcp/grants/g1', 'DELETE')).toHaveLength(0);
+    await user.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
+
+    await waitFor(() => expect(calls('/api/v1/mcp/grants/g1', 'DELETE')).toHaveLength(1));
+    await waitFor(() => expect(calls('/api/v1/mcp/grants', 'GET')).toHaveLength(2));
+  });
+
+  it('explains an empty assistant list by whether MCP is on', async () => {
+    routes['/api/v1/mcp/grants'] = () => json(200, { grants: [] });
+    routes['/api/v1/status'] = () =>
+      json(200, { libraryExists: true, version: '0', publicUrl: null, mcp: false });
+    renderPage();
+    expect(await screen.findByText('No assistants connected.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Set PUBLIC_URL to an https origin to turn the MCP endpoint on.')
+    ).toBeInTheDocument();
+  });
+
+  it('toasts when the assistants or jobs fail to load, or a disconnect fails', async () => {
+    routes['/api/v1/mcp/grants'] = () => json(500, { error: 'x' });
+    routes['/api/v1/jobs'] = () => json(500, { error: 'x' });
+    renderPage();
+    expect(await screen.findByText("Couldn't load assistants")).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't load jobs")).toBeInTheDocument();
+    expect(screen.getAllByText("Couldn't load")).toHaveLength(2);
   });
 
   it('a slow earlier devices response cannot overwrite a newer one', async () => {
