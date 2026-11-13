@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 
-import { DashboardPage, LoginPage, RecoverPage, ResetPage } from '~/page';
+import { DashboardPage, LoginPage, RecoverPage, ResetPage, SetupPage } from '~/page';
 
 import * as path from './path-internal';
 import { ProtectedRoute } from './protected-route';
@@ -14,6 +14,7 @@ export const AppRouter = () => {
           <Route path={path.login()} element={<LoginPage />} />
           <Route path={path.recover()} element={<RecoverPage />} />
           <Route path={path.reset()} element={<ResetPage />} />
+          <Route path={path.setup()} element={<SetupPage />} />
         </Route>
 
         <Route element={<ProtectedRoute />}>

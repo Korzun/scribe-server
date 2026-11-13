@@ -83,13 +83,13 @@ const fillAndSubmit = async (password: string, secretKey: string) => {
 };
 
 describe('LoginPage', () => {
-  it('shows the create-from-Scribe message when no library exists', async () => {
+  it('redirects to setup when no library exists', async () => {
     routes['/api/v1/status'] = () => json(200, { libraryExists: false, version: '0.1.0' });
     renderWithProviders(<LoginPage />);
 
-    expect(
-      await screen.findByText('Nothing here yet — create your library from Scribe on your Mac.')
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(routerMocks.navigate).toHaveBeenCalledWith('/setup', { replace: true })
+    );
     expect(screen.queryByPlaceholderText('Password')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sign In' })).not.toBeInTheDocument();
   });

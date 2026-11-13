@@ -4,3 +4,5 @@ export const login = () => '/login';
 export const recover = () => '/recover';
 /** Lost everything: the keys-lost reset that deletes the library (Task 13). */
 export const reset = () => '/reset';
+/** First run: a fresh vault with no library creates one from the browser. */
+export const setup = () => '/setup';

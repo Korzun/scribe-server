@@ -1,7 +1,7 @@
 import { useActionState, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { Card, EmptyState, Page } from '~/component';
+import { Card, Page } from '~/component';
 import { Button, TextInput } from '~/control';
 import { api } from '~/lib/api';
 import { fromBase64, toBase64 } from '~/lib/bytes';
@@ -15,7 +15,6 @@ import { path } from '~/router';
 
 import { useStyle } from './style';
 
-const NO_LIBRARY = 'Nothing here yet — create your library from Scribe on your Mac.';
 const NETWORK_ERROR = 'Network error — please try again';
 
 type Status = { libraryExists: boolean; version: string };
@@ -54,6 +53,11 @@ export const LoginPage = () => {
       cancelled = true;
     };
   }, []);
+
+  // A fresh vault has no library to sign in to: it is set up from the browser.
+  useEffect(() => {
+    if (libraryExists === false) void navigate(path.setup(), { replace: true });
+  }, [libraryExists, navigate]);
 
   const [, submitAction, isPending] = useActionState(async () => {
     const secretKey = parseSecretKey(secretKeyText ?? '');
@@ -186,9 +190,7 @@ export const LoginPage = () => {
               </Button>
             </div>
           </div>
-        ) : (
-          <EmptyState title={NO_LIBRARY} />
-        )}
+        ) : null}
       </div>
     </Page>
   );
