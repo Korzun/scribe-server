@@ -27,10 +27,25 @@ process.on('unhandledRejection', (reason) => {
 const config = loadConfig();
 
 // Before anything is opened or written: as root, own the two data directories
-// and become the unprivileged user, so every file the vault creates is that
-// user's (utils/drop-privileges.ts). Not root: just make sure the directories exist.
+// (and the add-on's options.json, which the Supervisor rewrites as root 0600
+// on every start and which the setup code is read from live) and become the
+// unprivileged user, so every file the vault creates is that user's
+// (utils/drop-privileges.ts). Not root: just make sure the directories exist.
 const privilegeOps = defaultPrivilegeOps();
-if (privilegeOps !== null && dropPrivileges([config.dataDir, config.blobsDir], privilegeOps)) {
+if (
+  privilegeOps !== null &&
+  dropPrivileges(
+    {
+      dirs: [config.dataDir, config.blobsDir],
+      // The database files too: cheap, and a restore or a hand-copied backup
+      // can leave them root-owned inside a directory that is already ours.
+      files: ['options.json', 'db.sqlite', 'db.sqlite-wal', 'db.sqlite-shm'].map((f) =>
+        path.join(config.dataDir, f)
+      ),
+    },
+    privilegeOps
+  )
+) {
   log.info(`Dropped privileges to uid ${VAULT_UID}`);
 } else {
   fs.mkdirSync(config.dataDir, { recursive: true });

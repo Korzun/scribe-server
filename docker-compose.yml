@@ -7,6 +7,10 @@ services:
   scribe:
     build: .
     image: ghcr.io/korzun/scribe-server:latest
+    # Always build from this checkout on `up`, so `git pull && docker compose
+    # up -d` runs the new code instead of the image already present under the
+    # tag. Deploying the published image instead is a `docker run` (README).
+    pull_policy: build
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"

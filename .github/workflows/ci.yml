@@ -197,11 +197,55 @@ jobs:
             exit 1
           fi
           echo "Second creation check passed (got 409 as expected)"
+      - name: Container as the Home Assistant add-on sees it (root-owned 0600 options.json, data written as root)
+        run: |
+          . ./smoke-lib.sh
+          # The Supervisor writes /data/options.json as root with mode 0600 on
+          # every start, and an earlier image may have written the database as
+          # root. The process must take both over before it drops privileges,
+          # or the setup code is unreadable and the database read-only.
+          mkdir addon-data
+          echo '{"setup_code":"smoke-setup-code-123","library_dir":"scribe","log_level":"debug"}' > addon-data/options.json
+          sudo chown -R root:root addon-data && sudo chmod 600 addon-data/options.json
+          mkdir addon-media && sudo chown root:root addon-media
+          docker run -d --name smoke-addon -p 3002:3000 \
+            -v "$PWD/addon-data:/data" -v "$PWD/addon-media:/media" scribe:smoke
+          wait_healthy smoke-addon
+          CREATE_STATUS=$(post_create 3002 "$(create_body smoke-addon smoke-setup-code-123)")
+          if [ "$CREATE_STATUS" != "201" ]; then
+            echo "Add-on setup check failed: expected HTTP 201 with the code from options.json, got ${CREATE_STATUS}: $(cat /tmp/create-response.json)"
+            exit 1
+          fi
+          echo "Add-on setup check passed (setup code read from a root-owned 0600 options.json)"
+          BLOB_OWNER=$(stat -c '%u' addon-media/scribe/blobs)
+          if [ "$BLOB_OWNER" != "1000" ]; then
+            echo "Media ownership check failed: blobs dir owned by uid ${BLOB_OWNER}, expected 1000"
+            exit 1
+          fi
+          echo "Media ownership check passed"
+          # Restart: the Supervisor would rewrite options.json as root again.
+          docker stop smoke-addon
+          sudo chown root:root addon-data/options.json addon-data/db.sqlite
+          docker start smoke-addon
+          wait_healthy smoke-addon
+          STATUS_BODY=$(curl -s http://localhost:3002/api/v1/status)
+          if ! echo "$STATUS_BODY" | grep -q '"libraryExists":true'; then
+            echo "Restart check failed: expected libraryExists:true after a restart, got ${STATUS_BODY}"
+            exit 1
+          fi
+          RESET_STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE http://localhost:3002/api/v1/library \
+            -H 'Content-Type: application/json' -d '{"setupCode":"wrong-code-12chars","confirm":"DELETE"}')
+          if [ "$RESET_STATUS" != "403" ]; then
+            echo "Restart check failed: expected 403 Wrong setup code (the code is readable again), got ${RESET_STATUS}"
+            exit 1
+          fi
+          echo "Restart check passed (root-owned files taken over again on boot)"
       - name: Container logs on failure
         if: failure()
         run: |
           docker logs smoke-closed 2>&1 || true
           docker logs smoke-open 2>&1 || true
+          docker logs smoke-addon 2>&1 || true
       - name: Cleanup
         if: always()
-        run: docker rm -f smoke-closed smoke-open 2>/dev/null || true
+        run: docker rm -f smoke-closed smoke-open smoke-addon 2>/dev/null || true

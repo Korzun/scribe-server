@@ -36,9 +36,19 @@ image is `node:24-alpine` with a built-in health check, and the process drops to
 the unprivileged `node` user (uid 1000) after taking ownership of its data
 directories.
 
+**Updating:** `git pull && docker compose up -d`. The compose file always builds
+from the checkout, so the new code runs; the volume is untouched.
+
 Releases also publish a multi-arch image, `ghcr.io/korzun/scribe-server`
-(`:latest`, `:beta`, `:<version>`), for hosts that deploy by image name. The
-package has to be public on GHCR for that pull to work without a login.
+(`:latest`, `:beta`, `:<version>`), for hosts that deploy by image name:
+
+```bash
+docker run -d --name scribe --restart unless-stopped -p 3000:3000 \
+  -e PUBLIC_URL=https://scribe.example.com -e SETUP_CODE=a-long-random-phrase \
+  -v scribe-data:/data ghcr.io/korzun/scribe-server:latest
+```
+
+The package has to be public on GHCR for that pull to work without a login.
 
 ## Deploying on Coolify
 
@@ -196,12 +206,14 @@ blobs onto a second one): the SQLite database, in-flight upload parts and the
 encrypted blobs. Back it up with your host's volume backups, or copy the
 directory while the container is stopped. Everything in it is ciphertext or
 operational metadata; a backup is no more readable than the disk is. Under Home
-Assistant the add-on's `data` and `media` shares are covered by its backups.
+Assistant an add-on backup covers the add-on's `data` share only; include the
+`media` folder in your Home Assistant backup too, or the blobs are not in it.
 
 The process runs as uid 1000 after taking ownership of those two directories at
-start. A host bind mount is chowned the same way; if you start the container
-with `--user` (or compose `user:`), that step is skipped and the directories must
-already be writable by that user.
+start: a directory it does not own yet (a fresh volume, a bind mount, or data an
+earlier version wrote as root) is taken over once, recursively. If you start the
+container with `--user` (or compose `user:`), that step is skipped and the
+directories must already be writable by that user.
 
 ## Home Assistant add-on
 
@@ -225,7 +237,7 @@ The same image is a Home Assistant add-on.
 Add-on options (set in the **Configuration** tab) map to the variables in
 "Configuration": `library_dir` (default `scribe`; blobs go to
 `/media/<library_dir>/blobs`), `public_url`, `trust_proxy_hops`, `setup_code`
-(a `password` field, re-read live so changing it and restarting rotates it) and
+(a `password` field; change it and restart the add-on to rotate it) and
 `log_level`.
 
 ```yaml
