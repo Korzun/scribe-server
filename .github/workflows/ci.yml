@@ -97,76 +97,107 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Build image
         run: docker build -t scribe:smoke .
-      - name: Run and verify startup
+      # Shared by the steps below. A well-formed creation body: canonical base64
+      # of the right lengths and a sealed wrap ("SCRB" + version 1 + 60 bytes),
+      # with no `device` (the browser's setup page sends none). The route
+      # validates the body BEFORE it checks the setup code, so only a body
+      # like this proves the gate itself: an empty `{}` gets a 400 and proves
+      # nothing. Built inside the container so the job needs no tooling beyond
+      # docker and curl.
+      - name: Prepare helpers
         run: |
-          # No volumes: the image must boot with an empty /data.
-          docker run -d --name smoke-test -p 3000:3000 scribe:smoke
-          for i in $(seq 1 15); do
-            if curl -sf http://localhost:3000/login -o /dev/null; then
-              echo "Server ready after ${i}s"
-              break
-            fi
-            if [ "$i" -eq 15 ]; then
-              echo "Server failed to become ready. Logs:"
-              docker logs smoke-test
-              docker rm -f smoke-test
-              exit 1
-            fi
-            sleep 1
-          done
-          # A fresh container has no library yet.
+          cat > smoke-lib.sh <<'EOF'
+          wait_healthy() { # <container>
+            for i in $(seq 1 30); do
+              if [ "$(docker inspect --format '{{.State.Health.Status}}' "$1")" = "healthy" ]; then
+                echo "$1 healthy after $((i * 2))s"
+                return 0
+              fi
+              sleep 2
+            done
+            echo "$1 never became healthy. Logs:"
+            docker logs "$1"
+            return 1
+          }
+          create_body() { # <container> <setup code>
+            docker exec "$1" node -e '
+              const b = (n) => Buffer.alloc(n).toString("base64");
+              const wrap = Buffer.concat([Buffer.from("SCRB"), Buffer.from([1]), Buffer.alloc(60)]).toString("base64");
+              console.log(JSON.stringify({
+                setupCode: process.argv[1],
+                libraryId: crypto.randomUUID(),
+                passwordSalt: b(16),
+                recoverySalt: b(16),
+                authKey: b(32),
+                passwordWrap: wrap,
+                recoveryCodes: Array.from({ length: 10 }, () => ({ authKey: b(32), wrap })),
+              }));
+            ' "$2"
+          }
+          post_create() { # <port> <body> -> prints the HTTP status
+            curl -s -o /tmp/create-response.json -w '%{http_code}' \
+              -X POST "http://localhost:$1/api/v1/library" \
+              -H 'Content-Type: application/json' \
+              -d "$2"
+          }
+          EOF
+      - name: Fresh container with no setup code (root-owned mount)
+        run: |
+          . ./smoke-lib.sh
+          # A root-owned host directory stands in for a volume the vault does
+          # not own yet; the process must take it over and write as uid 1000.
+          mkdir smoke-data && sudo chown root:root smoke-data && sudo chmod 755 smoke-data
+          docker run -d --name smoke-closed -p 3000:3000 -v "$PWD/smoke-data:/data" scribe:smoke
+          wait_healthy smoke-closed
+          OWNER=$(stat -c '%u' smoke-data/db.sqlite)
+          if [ "$OWNER" != "1000" ]; then
+            echo "Ownership check failed: db.sqlite is owned by uid ${OWNER}, expected 1000"
+            exit 1
+          fi
+          echo "Ownership check passed (db.sqlite owned by uid 1000)"
           STATUS_BODY=$(curl -s http://localhost:3000/api/v1/status)
           if ! echo "$STATUS_BODY" | grep -q '"libraryExists":false'; then
-            echo "Status check failed: expected libraryExists:false, got ${STATUS_BODY}. Logs:"
-            docker logs smoke-test
-            docker rm -f smoke-test
+            echo "Status check failed: expected libraryExists:false, got ${STATUS_BODY}"
             exit 1
           fi
           echo "Status check passed (fresh container has no library)"
-          # The image sets no `setup_code`, so creating the library must be
-          # refused with 403. This proves the setup-code gate is closed by
-          # default, not merely that request validation ran: the route
-          # validates the body BEFORE it checks the setup code, so an empty
-          # `{}` gets a 400 and proves nothing. The body below is therefore
-          # well-formed in every respect (canonical base64 of the right
-          # lengths, a sealed wrap: "SCRB" + version 1 + 60 bytes); the only
-          # thing wrong with it is that no setup code is configured to match.
-          # It is built inside the container so the job needs no tooling
-          # beyond docker and curl.
-          CREATE_BODY=$(docker exec smoke-test node -e '
-            const b = (n) => Buffer.alloc(n).toString("base64");
-            const wrap = Buffer.concat([Buffer.from("SCRB"), Buffer.from([1]), Buffer.alloc(60)]).toString("base64");
-            console.log(JSON.stringify({
-              setupCode: "smoke",
-              libraryId: crypto.randomUUID(),
-              passwordSalt: b(16),
-              recoverySalt: b(16),
-              authKey: b(32),
-              passwordWrap: wrap,
-              recoveryCodes: Array.from({ length: 10 }, () => ({ authKey: b(32), wrap })),
-              device: { name: "smoke" },
-            }));
-          ')
-          CREATE_STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
-            -X POST http://localhost:3000/api/v1/library \
-            -H 'Content-Type: application/json' \
-            -d "$CREATE_BODY")
+          # No SETUP_CODE and no options.json: creation must be refused with 403.
+          CREATE_STATUS=$(post_create 3000 "$(create_body smoke-closed smoke-setup-code-123)")
           if [ "$CREATE_STATUS" != "403" ]; then
-            echo "Setup gate check failed: expected HTTP 403 from POST /api/v1/library, got ${CREATE_STATUS}. Logs:"
-            docker logs smoke-test
-            docker rm -f smoke-test
+            echo "Setup gate check failed: expected HTTP 403 from POST /api/v1/library, got ${CREATE_STATUS}"
             exit 1
           fi
-          echo "Setup gate check passed (got 403 as expected)"
+          echo "Setup gate check passed (closed: got 403 as expected)"
           # The sync surface requires a token.
-          CHANGES_STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
-            http://localhost:3000/api/v1/changes)
+          CHANGES_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/v1/changes)
           if [ "$CHANGES_STATUS" != "401" ]; then
-            echo "Auth check failed: expected HTTP 401 from GET /api/v1/changes without a token, got ${CHANGES_STATUS}. Logs:"
-            docker logs smoke-test
-            docker rm -f smoke-test
+            echo "Auth check failed: expected HTTP 401 from GET /api/v1/changes without a token, got ${CHANGES_STATUS}"
             exit 1
           fi
           echo "Auth check passed (got 401 as expected)"
-          docker stop smoke-test
-          docker rm smoke-test
+      - name: Container with SETUP_CODE set (gate open)
+        run: |
+          . ./smoke-lib.sh
+          docker run -d --name smoke-open -p 3001:3000 -e SETUP_CODE=smoke-setup-code-123 scribe:smoke
+          wait_healthy smoke-open
+          BODY=$(create_body smoke-open smoke-setup-code-123)
+          CREATE_STATUS=$(post_create 3001 "$BODY")
+          if [ "$CREATE_STATUS" != "201" ] || ! grep -q '"libraryId"' /tmp/create-response.json; then
+            echo "Setup check failed: expected HTTP 201 with a libraryId, got ${CREATE_STATUS}: $(cat /tmp/create-response.json)"
+            exit 1
+          fi
+          echo "Setup check passed (open: created the library without a device)"
+          SECOND_STATUS=$(post_create 3001 "$BODY")
+          if [ "$SECOND_STATUS" != "409" ]; then
+            echo "Second creation check failed: expected HTTP 409, got ${SECOND_STATUS}"
+            exit 1
+          fi
+          echo "Second creation check passed (got 409 as expected)"
+      - name: Container logs on failure
+        if: failure()
+        run: |
+          docker logs smoke-closed 2>&1 || true
+          docker logs smoke-open 2>&1 || true
+      - name: Cleanup
+        if: always()
+        run: docker rm -f smoke-closed smoke-open 2>/dev/null || true

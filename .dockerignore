@@ -6,3 +6,10 @@ dev-data
 dev-media
 .claude
 .superpowers
+.git
+.github
+docs
+*.md
+.env
+.env.*
+!.env.example

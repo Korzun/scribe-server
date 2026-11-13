@@ -96,18 +96,19 @@ jobs:
       - name: Run and verify startup
         run: |
           docker run -d --name smoke-test -p 3000:3000 scribe:smoke
-          for i in $(seq 1 15); do
-            if curl -sf http://localhost:3000/login -o /dev/null; then
-              echo "Server ready after ${i}s"
+          # The image's own HEALTHCHECK is the readiness signal.
+          for i in $(seq 1 30); do
+            if [ "$(docker inspect --format '{{.State.Health.Status}}' smoke-test)" = "healthy" ]; then
+              echo "Container healthy after $((i * 2))s"
               break
             fi
-            if [ "$i" -eq 15 ]; then
-              echo "Server failed to become ready. Logs:"
+            if [ "$i" -eq 30 ]; then
+              echo "Container never became healthy. Logs:"
               docker logs smoke-test
               docker rm -f smoke-test
               exit 1
             fi
-            sleep 1
+            sleep 2
           done
           docker stop smoke-test
           docker rm smoke-test

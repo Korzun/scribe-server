@@ -74,5 +74,20 @@ COPY --from=builder /scribe/app/client/dist ./app/client/dist
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
+# The process starts as root only to take ownership of its data directories,
+# then drops itself to the image's `node` user (app/server/utils/drop-privileges.ts).
+# No USER line here on purpose; `docker run --user` is honoured and skips that step.
+
+ARG VERSION=dev
+LABEL org.opencontainers.image.title="Scribe vault" \
+      org.opencontainers.image.description="Encrypted vault for Scribe meeting libraries" \
+      org.opencontainers.image.source="https://github.com/Korzun/scribe-server" \
+      org.opencontainers.image.version="${VERSION}"
+
 EXPOSE 3000
+# Reaches the application, not just the port: a 200 with a JSON body from the
+# status route means the database opened and the server is answering. node is
+# the only HTTP client in the image; no curl or wget is added for this.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/v1/status').then(r=>r.ok?r.json():Promise.reject(r.status)).then(()=>process.exit(0),()=>process.exit(1))"
 CMD ["/run.sh"]
