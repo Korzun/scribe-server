@@ -251,10 +251,10 @@ export function resetLibrary(
       try {
         await jwtSecret.rotate();
       } catch (err) {
-        const name = err instanceof Error ? err.name : typeof err;
-        const code = (err as { code?: unknown } | null)?.code;
+        const errorClass = err instanceof Error ? err.name : typeof err;
+        const errno = (err as { code?: unknown } | null)?.code;
         log.error(
-          `Library deleted, but rotating the signing secret failed: ${name}${typeof code === 'string' ? ` (${code})` : ''}`
+          `Library deleted, but rotating the signing secret failed: ${errorClass}${typeof errno === 'string' ? ` (${errno})` : ''}`
         );
         outcome = 'rotation_failed';
       }

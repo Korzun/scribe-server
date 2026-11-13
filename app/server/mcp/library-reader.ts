@@ -70,10 +70,16 @@ export function createLibraryReader(deps: LibraryReaderDeps): LibraryReader {
     }
   }
 
+  // A tombstoned meeting is no longer the library's (spec §6), whatever blobs
+  // still wait on disk for the collector: its artifacts read as absent.
   const meetingJson =
     <T>(kind: string) =>
-    (meetingId: string): Promise<T | null> =>
-      meetingId === LIBRARY_SCOPE ? Promise.resolve(null) : readJson<T>(meetingId, kind);
+    async (meetingId: string): Promise<T | null> => {
+      if (meetingId === LIBRARY_SCOPE) return null;
+      const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+      if (meeting === null || meeting.deletedAt !== null) return null;
+      return readJson<T>(meetingId, kind);
+    };
 
   return {
     async listMeetingIds() {

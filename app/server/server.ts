@@ -12,8 +12,10 @@ import { requestLog } from './middleware/request-log';
 import { requestTimeout } from './middleware/timeout';
 import { createChangesRouter } from './routes/changes';
 import { createDevicesRouter } from './routes/devices';
+import { createJobsRouter } from './routes/jobs';
 import { createLibraryRouter } from './routes/library';
 import { createLibraryBlobsRouter } from './routes/library-blobs';
+import { createMcpAdminRouter } from './routes/mcp-admin';
 import { createMeetingsRouter } from './routes/meetings';
 import { createRecoveryRouter } from './routes/recovery';
 import { createSessionRouter } from './routes/session';
@@ -94,6 +96,11 @@ export function createServer({
   server.use('/api/v1', createRecoveryRouter({ prisma, config, now }));
   server.use('/api/v1', createMeetingsRouter({ prisma, jwtSecret, blobStore, now }));
   server.use('/api/v1', createChangesRouter({ prisma, jwtSecret, now }));
+  server.use('/api/v1', createJobsRouter({ prisma, jwtSecret, now }));
+  server.use(
+    '/api/v1',
+    createMcpAdminRouter({ prisma, jwtSecret, now, mcpEnabled: mcpBaseUrl !== null })
+  );
 
   // Any other /api path is a JSON 404, so API clients never receive HTML.
   server.use('/api/{*splat}', (_req: Request, res: Response): void => {
