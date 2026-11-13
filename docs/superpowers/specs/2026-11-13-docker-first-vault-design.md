@@ -134,14 +134,16 @@ The root `Dockerfile` keeps its three-stage shape (builder, prod-deps,
 runtime on `node:24-alpine`, with the cross-build handling it already has)
 and gains:
 
-- **A non-root process.** The container starts as root, and `run.sh`
-  makes `DATA_DIR` and `BLOBS_DIR` owned by the image's `node` user (uid
-  1000) and then drops to that user with `su-exec` before starting
-  `node`. This is the pattern that works for every mount the vault meets:
+- **A non-root process.** The container starts as root. Before the server
+  opens anything, it creates `DATA_DIR` and `BLOBS_DIR`, makes those two
+  directories (not their contents) owned by the image's `node` user (uid
+  1000), and drops to that user with `process.setgid` and `process.setuid`.
+  It happens in the server rather than in `run.sh` because only the server
+  knows the resolved blob path when it comes from `options.json`. This is the pattern that works for every mount the vault meets:
   a Docker named volume, a host bind mount, and Home Assistant's `data`
   and `media` directories, which the Supervisor creates root-owned. If the
-  container is started with `--user` (or compose `user:`), `run.sh` is
-  not root, skips the ownership step and just execs `node`, so an operator
+  container is started with `--user` (or compose `user:`), the process is
+  not root, skips the ownership step and runs as that user, so an operator
   who prefers a fixed uid can have one. My call; the app itself never
   needs root.
 - **A health check.** `HEALTHCHECK` every 30 s, 5 s timeout, 3 retries,
@@ -158,8 +160,8 @@ and gains:
   `.git`, `docs` and the worktrees out of the build context (check what is
   there and add what is missing).
 
-`run.sh` stays as the entrypoint for both shapes: ownership, drop
-privileges, exec `node`, nothing else.
+`run.sh` stays as the entrypoint for both shapes; it does nothing but exec
+`node`.
 
 ## 4. Storage
 
@@ -340,8 +342,9 @@ Each step leaves the add-on working.
 - Setup happens in the browser, not the CLI or Scribe (the owner said it
   does not matter; this makes the vault usable alone).
 - One volume at `/data` by default; blobs split only by choice.
-- The container starts as root only to take ownership of its mounts, then
-  runs as the `node` user; `--user` skips that and is honoured.
+- The container starts as root only to take ownership of its two data
+  directories, then the server drops itself to the `node` user; `--user`
+  skips that and is honoured.
 - The dev compose file is renamed so the root compose file is deployable.
 - A multi-arch `scribe-server` image is published on release, in addition
   to the add-on images.
