@@ -5,6 +5,9 @@ import cookieParser from 'cookie-parser';
 import express, { NextFunction, Request, Response } from 'express';
 
 import { logger } from './logger';
+import { resolveMcpBaseUrl } from './mcp/base-url';
+import { createMcpDisabledRouter } from './mcp/disabled';
+import { createMcpRouter } from './mcp/index';
 import { requestLog } from './middleware/request-log';
 import { requestTimeout } from './middleware/timeout';
 import { createChangesRouter } from './routes/changes';
@@ -63,9 +66,24 @@ export function createServer({
   server.use(express.urlencoded({ extended: false }));
   server.use(cookieParser());
 
+  // The remote MCP endpoint and its OAuth server (spec §10), only when
+  // PUBLIC_URL is an https origin: the issuer is that origin and never the
+  // Host header. Off, every MCP path is a JSON 404 that says why.
+  const mcpBaseUrl = resolveMcpBaseUrl(config.publicUrl);
+  if (mcpBaseUrl !== null) {
+    server.use(createMcpRouter({ baseUrl: mcpBaseUrl, prisma, blobStore, config, now }));
+  } else {
+    server.use(createMcpDisabledRouter());
+  }
+
   server.use(
     '/api/v1/status',
-    createStatusRouter({ prisma, version: APP_VERSION, publicUrl: config.publicUrl })
+    createStatusRouter({
+      prisma,
+      version: APP_VERSION,
+      publicUrl: config.publicUrl,
+      mcp: mcpBaseUrl !== null,
+    })
   );
 
   server.use('/api/v1', createLibraryRouter({ prisma, jwtSecret, config, blobStore, gc, now }));
