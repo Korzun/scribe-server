@@ -62,6 +62,53 @@ export type ClientBody = {
   expiresAt?: number;
   parts?: number[];
   missing?: number[];
+  mcp?: boolean;
+  clientId?: string;
+  clientName?: string;
+  clientUri?: string | null;
+  redirectUrl?: string;
+  grants?: McpGrantEntry[];
+  job?: JobEntry;
+  depth?: number;
+  leased?: number;
+  recent?: JobEntry[];
+  leaseExpiresAt?: number;
+};
+
+/**
+ * How long a claimed job is the Mac's before it returns to the queue, and
+ * how often the Mac heartbeats to keep it (spec §8). Three lapses fail a job
+ * with outcome `lapsed`. The worker that honours these is Scribe's (plan 4);
+ * `scripts/vault-cli.ts` drives them by hand until then.
+ */
+export const JOB_LEASE_MS = 15 * 60 * 1000;
+export const JOB_HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
+
+/** One reprocessing job as every job route answers it. */
+export type JobEntry = {
+  id: string;
+  meetingId: string;
+  reason: string;
+  requestedBy: string;
+  status: 'queued' | 'leased' | 'done' | 'failed';
+  attempts: number;
+  leaseDeviceId: string | null;
+  leaseExpiresAt: number | null;
+  createdAt: number;
+  startedAt: number | null;
+  finishedAt: number | null;
+  outcome: string | null;
+  note: string | null;
+};
+
+/** One connected assistant, as `GET /mcp/grants` lists it. */
+export type McpGrantEntry = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  clientUri: string | null;
+  createdAt: number;
+  lastUsedAt: number | null;
 };
 
 export type MeetingBlobEntry = { kind: string; revision: number; sha256: string; size: number };
@@ -668,6 +715,57 @@ export class HttpVaultClient {
 
   async createLibrary(input: unknown): Promise<ClientResponse> {
     return this.call({ method: 'POST', path: '/api/v1/library', json: input });
+  }
+
+  // The owner's side of the remote MCP (routes/mcp-admin.ts).
+
+  /** GET /mcp/clients/:clientId: what the consent page shows about an assistant. */
+  async mcpClient(token: string, clientId: string): Promise<ClientResponse> {
+    return this.authed('GET', `/api/v1/mcp/clients/${encodeURIComponent(clientId)}`, token);
+  }
+
+  /** POST /mcp/authorize with an arbitrary body: the consent decision, approve or deny. */
+  async mcpAuthorize(token: string, body: unknown): Promise<ClientResponse> {
+    return this.authed('POST', '/api/v1/mcp/authorize', token, { json: body });
+  }
+
+  async mcpGrants(token: string): Promise<ClientResponse> {
+    return this.authed('GET', '/api/v1/mcp/grants', token);
+  }
+
+  /** DELETE /mcp/grants/:id: Disconnect. */
+  async disconnectMcpGrant(token: string, id: string): Promise<ClientResponse> {
+    return this.authed('DELETE', `/api/v1/mcp/grants/${encodeURIComponent(id)}`, token);
+  }
+
+  // The reprocessing job queue (routes/jobs.ts, spec §8). Owner auth to
+  // enqueue and list; device token only to claim, heartbeat and complete.
+
+  /** POST /jobs with an arbitrary body: `{ meetingId, reason }` enqueues. */
+  async enqueueJob(token: string, body: unknown): Promise<ClientResponse> {
+    return this.authed('POST', '/api/v1/jobs', token, { json: body });
+  }
+
+  /** GET /jobs: depth, live leases and the last few outcomes, for the admin page. */
+  async listJobs(token: string): Promise<ClientResponse> {
+    return this.authed('GET', '/api/v1/jobs', token);
+  }
+
+  /** POST /jobs/claim: at most one job with a lease of `JOB_LEASE_MS`, or 204. */
+  async claimJob(token: string): Promise<ClientResponse> {
+    return this.authed('POST', '/api/v1/jobs/claim', token);
+  }
+
+  /** POST /jobs/:id/heartbeat: extends this device's lease; the Mac calls it every `JOB_HEARTBEAT_INTERVAL_MS`. */
+  async heartbeatJob(token: string, id: string): Promise<ClientResponse> {
+    return this.authed('POST', `/api/v1/jobs/${encodeURIComponent(id)}/heartbeat`, token);
+  }
+
+  /** POST /jobs/:id/complete with an arbitrary body: `{ outcome: 'ok' | 'failed', note? }`. */
+  async completeJob(token: string, id: string, body: unknown): Promise<ClientResponse> {
+    return this.authed('POST', `/api/v1/jobs/${encodeURIComponent(id)}/complete`, token, {
+      json: body,
+    });
   }
 
   private putBlob(

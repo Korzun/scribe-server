@@ -186,8 +186,8 @@ export async function handleBlobGet(
   try {
     stream = await blob.openStream();
   } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code ?? 'error';
-    log.error(`Blob file missing: ${scope}/${kind} revision ${blob.revision}: ${code}`);
+    const errno = (err as NodeJS.ErrnoException).code ?? 'error';
+    log.error(`Blob file missing: ${scope}/${kind} revision ${blob.revision}: ${errno}`);
     res.removeHeader('ETag');
     res.removeHeader('X-Scribe-Sha256');
     res.status(404).json({ error: 'Not found' });

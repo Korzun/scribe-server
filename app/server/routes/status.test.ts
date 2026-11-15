@@ -22,6 +22,7 @@ describe('GET /api/v1/status', () => {
       libraryExists: false,
       version: expect.any(String),
       publicUrl: null,
+      mcp: false,
     });
   });
 

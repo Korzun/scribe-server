@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "notes": [
+    "The key chain through MCP tokens (design spec §10). A secret is an authorization code, an access token or a refresh token: 32 random bytes.",
+    "wire is the form the secret travels in: base64url of the bytes, no padding. hash = SHA-256(UTF-8 bytes of wire), lowercase hex; it is the only form the vault stores.",
+    "k = HKDF-SHA256(ikm = the 32 secret bytes, salt = empty, info = \"scribe/v1/token-kek\", 32 bytes). It wraps the Library Key for that one secret.",
+    "wrapAad is tokenWrapAad(libraryId, kind, hash) = <libraryId>/mcp/<kind>/<hash>, kind one of code, access, refresh.",
+    "Node (crypto/token-kek.ts) and the browser (lib/kdf.ts) must both derive k from secret."
+  ],
+  "secret": "0f1e2d3c4b5a69788796a5b4c3d2e1f00112233445566778899aabbccddeeff0",
+  "wire": "Dx4tPEtaaXiHlqW0w9Lh8AESIzRFVmd4iZqrvM3e7_A",
+  "hash": "e267b5d891b05d41dccfbe5c2a2e15d1d09bd537dac9f800fd109b82510c1d75",
+  "k": "60e8b156e157f082550e8aa6ea228694021db0ded9a3d45a49431c3bba6b594c",
+  "libraryId": "11111111-2222-4333-8444-555555555555",
+  "wrapAad": "11111111-2222-4333-8444-555555555555/mcp/code/e267b5d891b05d41dccfbe5c2a2e15d1d09bd537dac9f800fd109b82510c1d75"
+}

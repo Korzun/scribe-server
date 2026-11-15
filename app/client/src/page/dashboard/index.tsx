@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { DeviceList, Page, SecurityCard, StorageCard } from '~/component';
+import { AssistantsCard, DeviceList, JobsCard, Page, SecurityCard, StorageCard } from '~/component';
 import { Button } from '~/control';
 import {
+  disconnectGrant,
   loadDevices,
+  loadGrants,
+  loadJobs,
   loadLibrary,
+  loadStatus,
   purgeDeleted,
   renameDevice,
   revokeDevice,
   type Device,
+  type Grant,
+  type JobsSummary,
   type Library,
 } from '~/lib/dashboard';
 import { useAuth } from '~/provider/auth';
@@ -25,6 +31,11 @@ export const DashboardPage = () => {
   const [signingOut, setSigningOut] = useState(false);
   const [library, setLibrary] = useState<Loaded<Library>>({ failed: false });
   const [devices, setDevices] = useState<Loaded<Device[]>>({ failed: false });
+  const [grants, setGrants] = useState<Loaded<Grant[]>>({ failed: false });
+  const [jobs, setJobs] = useState<Loaded<JobsSummary>>({ failed: false });
+  // Whether /mcp is served; undefined until the status answers. Explains an
+  // empty Assistants card.
+  const [mcp, setMcp] = useState<boolean | undefined>();
   // Taken when the devices load, so relative times stay stable between renders.
   const [now, setNow] = useState(Date.now);
 
@@ -32,6 +43,8 @@ export const DashboardPage = () => {
   // after unmount.
   const libraryRequest = useRef(0);
   const devicesRequest = useRef(0);
+  const grantsRequest = useRef(0);
+  const jobsRequest = useRef(0);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -65,9 +78,37 @@ export const DashboardPage = () => {
     }
   }, [toast]);
 
+  const refreshGrants = useCallback(async () => {
+    const request = ++grantsRequest.current;
+    const [result, status] = await Promise.all([loadGrants(), loadStatus()]);
+    if (!mounted.current || request !== grantsRequest.current) return;
+    if (status.ok) setMcp(status.body.mcp);
+    if (result.ok) {
+      setGrants({ value: result.body.grants, failed: false });
+    } else {
+      setGrants((prev) => ({ value: prev.value, failed: true }));
+      toast("Couldn't load assistants", 'error');
+    }
+  }, [toast]);
+
+  const refreshJobs = useCallback(async () => {
+    const request = ++jobsRequest.current;
+    const result = await loadJobs();
+    if (!mounted.current || request !== jobsRequest.current) return;
+    if (result.ok) {
+      setJobs({ value: result.body, failed: false });
+    } else {
+      setJobs((prev) => ({ value: prev.value, failed: true }));
+      toast("Couldn't load jobs", 'error');
+    }
+  }, [toast]);
+
   const refreshAll = useCallback(
-    () => Promise.all([refreshLibrary(), refreshDevices()]).then(() => undefined),
-    [refreshLibrary, refreshDevices]
+    () =>
+      Promise.all([refreshLibrary(), refreshDevices(), refreshGrants(), refreshJobs()]).then(
+        () => undefined
+      ),
+    [refreshLibrary, refreshDevices, refreshGrants, refreshJobs]
   );
 
   useEffect(() => {
@@ -95,6 +136,12 @@ export const DashboardPage = () => {
   const purge = async () => {
     const result = await purgeDeleted();
     if (!result.ok) toast("Couldn't empty the deleted meetings", 'error');
+    await refreshAll();
+  };
+
+  const disconnect = async (id: string) => {
+    const result = await disconnectGrant(id);
+    if (!result.ok) toast("Couldn't disconnect the assistant", 'error');
     await refreshAll();
   };
 
@@ -128,6 +175,14 @@ export const DashboardPage = () => {
           onRename={rename}
           onRevoke={revoke}
         />
+        <AssistantsCard
+          grants={grants.value}
+          failed={grants.failed && !grants.value}
+          mcpEnabled={mcp}
+          now={now}
+          onDisconnect={disconnect}
+        />
+        <JobsCard jobs={jobs.value} failed={jobs.failed && !jobs.value} now={now} />
         <SecurityCard
           recoveryCodesRemaining={library.value?.recoveryCodesRemaining}
           onChanged={() => void refreshAll()}

@@ -39,6 +39,7 @@ model Library {
 
   recoveryCodes RecoveryCode[]
   devices       Device[]
+  grants        McpGrant[]
 
   @@map("libraries")
 }
@@ -145,4 +146,107 @@ model Upload {
 
   @@index([expiresAt])
   @@map("uploads")
+}
+
+// An OAuth client an assistant registered through dynamic client registration
+// (spec §10): the SDK's registration document, stored whole as JSON so what
+// `getClient` returns is exactly what was registered. `lastGrantedAt` is the
+// sweep key: a client the owner never approved is forgotten a day after it
+// registered; one that was ever approved is kept, because the assistant keeps
+// its `client_id` and reuses it when the owner reconnects.
+model McpClient {
+  clientId              String     @id @map("client_id")
+  clientSecret          String?    @map("client_secret")
+  clientIdIssuedAt      Float      @map("client_id_issued_at")
+  clientSecretExpiresAt Float?     @map("client_secret_expires_at")
+  lastGrantedAt         Float?     @map("last_granted_at")
+  metadata              String
+  createdAt             Float      @map("created_at")
+  grants                McpGrant[]
+
+  @@map("mcp_clients")
+}
+
+// The owner's approval of one client: the row the admin page's Assistants card
+// lists and "Disconnect" deletes. Codes and tokens, and with them every wrap
+// of the Library Key, cascade away with it, which is what makes a disconnect
+// immediate. `scopes` is the space-joined granted set (only `library:read`).
+model McpGrant {
+  id         String                 @id
+  libraryId  String                 @map("library_id")
+  clientId   String                 @map("client_id")
+  scopes     String
+  createdAt  Float                  @map("created_at")
+  lastUsedAt Float?                 @map("last_used_at")
+  library    Library                @relation(fields: [libraryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  client     McpClient              @relation(fields: [clientId], references: [clientId], onDelete: Cascade, onUpdate: Cascade)
+  codes      McpAuthorizationCode[]
+  tokens     McpToken[]
+
+  @@unique([libraryId, clientId])
+  @@map("mcp_grants")
+}
+
+// A single-use authorization code the BROWSER minted at consent (spec §10):
+// the vault holds only its SHA-256 and `wrap`, the Library Key sealed under a
+// key derived from the code, so it can open the key once, when the assistant
+// presents the code at the token endpoint. `redirectUri`, `codeChallenge` and
+// `resource` are what the code was bound to and are re-checked there.
+model McpAuthorizationCode {
+  codeHash      String   @id @map("code_hash")
+  grantId       String   @map("grant_id")
+  redirectUri   String   @map("redirect_uri")
+  codeChallenge String   @map("code_challenge")
+  resource      String?
+  wrap          Bytes
+  expiresAt     Float    @map("expires_at")
+  grant         McpGrant @relation(fields: [grantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([grantId])
+  @@map("mcp_authorization_codes")
+}
+
+// An opaque access or refresh token (`kind`), hash only, with the Library Key
+// sealed under the key derived from that token. A refresh token is deleted in
+// the same statement that reads it. Opening `wrap` needs the raw token, which
+// only the assistant holds: the vault's disk never holds the Library Key
+// under a key the vault also holds.
+model McpToken {
+  tokenHash String   @id @map("token_hash")
+  grantId   String   @map("grant_id")
+  kind      String
+  wrap      Bytes
+  expiresAt Float    @map("expires_at")
+  createdAt Float    @map("created_at")
+  grant     McpGrant @relation(fields: [grantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([grantId])
+  @@index([expiresAt])
+  @@map("mcp_tokens")
+}
+
+// One reprocessing job (spec §8). The vault hands out work; a Mac decides its
+// own eligibility, claims at most one job with a lease, heartbeats, and
+// completes. `status` is queued | leased | done | failed; a leased job whose
+// `leaseExpiresAt` has passed is claimable again, and `attempts` counts the
+// leases it has had. `requestedBy` is `device:<id>` or `session` today and
+// leaves room for `grant:<id>` should an assistant ever be allowed to ask.
+model Job {
+  id             String  @id
+  meetingId      String  @map("meeting_id")
+  reason         String
+  requestedBy    String  @map("requested_by")
+  status         String
+  attempts       Int     @default(0)
+  leaseDeviceId  String? @map("lease_device_id")
+  leaseExpiresAt Float?  @map("lease_expires_at")
+  createdAt      Float   @map("created_at")
+  startedAt      Float?  @map("started_at")
+  finishedAt     Float?  @map("finished_at")
+  outcome        String?
+  note           String?
+
+  @@index([status, createdAt])
+  @@index([meetingId])
+  @@map("jobs")
 }

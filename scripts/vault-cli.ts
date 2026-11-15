@@ -56,6 +56,14 @@ Commands:
                          Print the change log, one line per change
   devices                List the library's devices
   delete <meetingId>     Delete a meeting (its blobs go after seven days)
+  assistants             List the AI assistants connected through MCP
+  jobs list              Queue depth, live leases and the last few outcomes
+  jobs enqueue <meetingId> --reason <text>
+                         Ask for the meeting to be reprocessed
+  jobs claim             Take the oldest waiting job under a lease, as a Mac would
+  jobs heartbeat <jobId> Keep this device's lease on a job
+  jobs complete <jobId> [--failed] [--note <text>]
+                         Close a job this device holds
 
 Options:
   --url <origin>         The vault (default ${DEFAULT_URL}, or the cached one)
@@ -131,7 +139,14 @@ const defaultName = () => `vault-cli on ${os.hostname()}`;
 type Context = {
   url: string;
   client: HttpVaultClient;
-  values: { 'setup-code'?: string; name?: string; since?: string };
+  values: {
+    'setup-code'?: string;
+    name?: string;
+    since?: string;
+    reason?: string;
+    failed?: boolean;
+    note?: string;
+  };
   args: string[];
 };
 
@@ -325,6 +340,101 @@ async function remove(ctx: Context): Promise<void> {
   console.log(`Deleted meeting ${meetingId}; its blobs are collected after seven days.`);
 }
 
+async function assistants(ctx: Context): Promise<void> {
+  positional(ctx.args, 0, 'assistants');
+  const cache = device(ctx);
+  const res = await ctx.client.mcpGrants(cache.deviceToken);
+  if (res.status !== 200) fail('assistants', res);
+  const grants = res.body.grants ?? [];
+  if (grants.length === 0) console.log('No assistants connected.');
+  for (const g of grants) {
+    console.log(
+      `${g.id}\t${g.clientName}\t${g.clientUri ?? '-'}\tconnected ${isoOrDash(g.createdAt)}\tlast used ${isoOrDash(g.lastUsedAt)}`
+    );
+  }
+}
+
+const isoOrDash = (ms: number | null) => (ms === null ? '-' : new Date(ms).toISOString());
+
+/** One line per job, as `jobs list` and the claim print it. */
+function printJob(job: NonNullable<ClientResponse['body']['job']>): void {
+  const lease =
+    job.status === 'leased'
+      ? `\tdevice ${job.leaseDeviceId}\tlease until ${isoOrDash(job.leaseExpiresAt)}`
+      : job.outcome !== null
+        ? `\t${job.outcome}${job.note !== null ? ` (${job.note})` : ''}\tfinished ${isoOrDash(job.finishedAt)}`
+        : '';
+  console.log(
+    `${job.id}\t${job.meetingId}\t${job.status}\tattempt ${job.attempts}\t${job.reason}${lease}`
+  );
+}
+
+/**
+ * The job queue by hand (spec §8), so the API can be proven before Scribe's
+ * worker exists: the device this CLI enrolled as plays the Mac.
+ */
+async function jobs(ctx: Context): Promise<void> {
+  const [sub, ...rest] = ctx.args;
+  const cache = device(ctx);
+  switch (sub) {
+    case 'list': {
+      positional(rest, 0, 'jobs list');
+      const res = await ctx.client.listJobs(cache.deviceToken);
+      if (res.status !== 200) fail('jobs list', res);
+      console.log(`Waiting: ${res.body.depth}\tIn progress: ${res.body.leased}`);
+      for (const job of res.body.recent ?? []) printJob(job);
+      return;
+    }
+    case 'enqueue': {
+      const [rawId] = positional(rest, 1, 'jobs enqueue <meetingId> --reason <text>');
+      const reason = ctx.values.reason;
+      if (reason === undefined || reason.trim() === '') {
+        throw new CliError('usage: jobs enqueue <meetingId> --reason <text>');
+      }
+      const res = await ctx.client.enqueueJob(cache.deviceToken, {
+        meetingId: meetingIdArg(rawId),
+        reason,
+      });
+      if (res.status !== 201 && res.status !== 200) fail('jobs enqueue', res);
+      console.log(res.status === 201 ? 'Enqueued:' : 'Already waiting:');
+      printJob(res.body.job!);
+      return;
+    }
+    case 'claim': {
+      positional(rest, 0, 'jobs claim');
+      const res = await ctx.client.claimJob(cache.deviceToken);
+      if (res.status === 204) {
+        console.log('No job waiting.');
+        return;
+      }
+      if (res.status !== 200) fail('jobs claim', res);
+      console.log('Claimed:');
+      printJob(res.body.job!);
+      return;
+    }
+    case 'heartbeat': {
+      const [jobId] = positional(rest, 1, 'jobs heartbeat <jobId>');
+      const res = await ctx.client.heartbeatJob(cache.deviceToken, jobId!);
+      if (res.status !== 200) fail('jobs heartbeat', res);
+      console.log(`Lease extended until ${isoOrDash(res.body.leaseExpiresAt ?? null)}.`);
+      return;
+    }
+    case 'complete': {
+      const [jobId] = positional(rest, 1, 'jobs complete <jobId> [--failed] [--note <text>]');
+      const res = await ctx.client.completeJob(cache.deviceToken, jobId!, {
+        outcome: ctx.values.failed === true ? 'failed' : 'ok',
+        ...(ctx.values.note === undefined ? {} : { note: ctx.values.note }),
+      });
+      if (res.status !== 200) fail('jobs complete', res);
+      console.log('Completed:');
+      printJob(res.body.job!);
+      return;
+    }
+    default:
+      throw new CliError('usage: jobs list | enqueue | claim | heartbeat | complete; see --help');
+  }
+}
+
 const COMMANDS: Record<string, (ctx: Context) => Promise<void>> = {
   create,
   enrol,
@@ -333,6 +443,8 @@ const COMMANDS: Record<string, (ctx: Context) => Promise<void>> = {
   changes,
   devices,
   delete: remove,
+  assistants,
+  jobs,
 };
 
 async function main(argv: string[]): Promise<number> {
@@ -344,6 +456,9 @@ async function main(argv: string[]): Promise<number> {
       'setup-code': { type: 'string' },
       name: { type: 'string' },
       since: { type: 'string' },
+      reason: { type: 'string' },
+      failed: { type: 'boolean' },
+      note: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
   });

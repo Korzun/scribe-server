@@ -108,3 +108,15 @@ export function keyWrapAad(libraryId: string, slot: 'password' | 'recovery'): st
 export function blobAad(libraryId: string, scope: string, kind: string, revision: number): string {
   return `${libraryId}/${scope}/${kind}/${revision}`;
 }
+
+/** The secret kinds whose rows wrap the Library Key for an MCP client (spec §10). */
+export type TokenWrapKind = 'code' | 'access' | 'refresh';
+
+/**
+ * AAD for the Library Key wrapped under one MCP secret's derived key:
+ * `<libraryId>/mcp/<kind>/<hash of the secret>`, the server's
+ * `crypto/seal.ts` string. The consent page seals the code's wrap with it.
+ */
+export function tokenWrapAad(libraryId: string, kind: TokenWrapKind, hash: string): string {
+  return `${libraryId}/mcp/${kind}/${hash}`;
+}
