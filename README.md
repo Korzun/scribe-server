@@ -283,7 +283,7 @@ make run            # build + run at http://localhost:3000
 make logs           # tail container logs
 make stop           # stop and remove the container
 
-# Native (without Docker)
+# Native (without Docker): Node 24. `mise install` gets it if you use mise (see mise.toml).
 npm ci
 npm run dev         # server, live-reload
 npm run dev:client  # client, live-reload
