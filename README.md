@@ -34,7 +34,10 @@ code that can create or wipe a library is no longer configured.
 Everything the vault needs lives in one named volume mounted at `/data`. The
 image is `node:24-alpine` with a built-in health check, and the process drops to
 the unprivileged `node` user (uid 1000) after taking ownership of its data
-directories.
+directories. The image carries node, the server's production dependencies and
+the built admin page, and nothing a build needs: npm, the Prisma CLI and
+TypeScript are stripped (`scripts/prune-prod-deps.mjs`), and Alpine's packages
+are upgraded at build time, so an image scan sees only what actually runs.
 
 **Updating:** `git pull && docker compose up -d`. The compose file always builds
 from the checkout, so the new code runs; the volume is untouched.

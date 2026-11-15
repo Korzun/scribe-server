@@ -101,6 +101,26 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Build image
         run: docker build -t scribe:smoke .
+      # The runtime image carries node, the server's production dependencies and
+      # the built client, and nothing that only a build needs: no npm, no Prisma
+      # CLI, no TypeScript (Dockerfile, prod-deps and runtime stages). Image
+      # scanners flag exactly those, so this keeps them from creeping back.
+      - name: Image contents (no package managers, no dev tooling)
+        run: |
+          docker run --rm scribe:smoke sh -c '
+            set -e
+            for f in /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/lib/node_modules; do
+              if [ -e "$f" ]; then echo "$f is still in the image"; exit 1; fi
+            done
+            for d in prisma typescript @typescript @prisma/dev @prisma/engines @prisma/studio-core mysql2 postgres react; do
+              if [ -e "/scribe/node_modules/$d" ]; then echo "node_modules/$d is still in the image"; exit 1; fi
+            done
+            for d in @prisma/client @prisma/adapter-better-sqlite3 .prisma better-sqlite3 argon2 express @modelcontextprotocol/sdk; do
+              if [ ! -e "/scribe/node_modules/$d" ]; then echo "node_modules/$d is missing from the image"; exit 1; fi
+            done
+            echo "Alpine packages of note: $(apk list -I 2>/dev/null | grep -E "^(zlib|busybox|musl)-" | tr "\n" " ")"
+          '
+          echo "Image contents check passed"
       # Shared by the steps below. A well-formed creation body: canonical base64
       # of the right lengths and a sealed wrap ("SCRB" + version 1 + 60 bytes),
       # with no `device` (the browser's setup page sends none). The route
