@@ -49,12 +49,29 @@ RUN NPMARCH=$([ "${TARGETARCH}" = "amd64" ] && echo "x64" || echo "${TARGETARCH}
     ARGON2=1 npm_config_arch=${NPMARCH} npm ci --cpu=${NPMARCH} --omit=dev && \
     npm cache clean --force
 
+# `--omit=dev` still installs the optional peers of production packages when
+# the lockfile knows them: @prisma/client → prisma (the CLI, with its dev
+# server, Studio, MySQL and Postgres drivers) and → typescript (a Go binary in
+# 7.x). The server applies migrations itself and never runs either, so keep
+# only what the server's dependencies and optionalDependencies reach. Runs on
+# the build platform, like the install above.
+COPY scripts/prune-prod-deps.mjs ./scripts/
+RUN node scripts/prune-prod-deps.mjs . --workspace app/server
+
 # ── runtime ──────────────────────────────────────────────────────────────────
 # Target-platform image. No npm/node commands run here during the build, so
-# QEMU is never asked to execute Node.js – only COPY and chmod, which Docker
-# handles natively.
+# QEMU is never asked to execute Node.js – only COPY, chmod, apk and rm, which
+# run fine under emulation.
 FROM node:24-alpine
 WORKDIR /scribe
+
+# Nothing in the container runs npm, npx, corepack or yarn: run.sh execs node,
+# migrations are applied in-process, the health check is a node one-liner.
+# Removing them drops npm's own dependency tree (what image scanners flag) and
+# `apk upgrade` picks up Alpine fixes published since the base image was built.
+RUN apk upgrade --no-cache && \
+    rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx \
+           /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn-v*
 
 COPY package.json ./
 COPY app/server/package.json ./app/server/
