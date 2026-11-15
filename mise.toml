@@ -1,0 +1,6 @@
+# Tool versions for local development, managed by mise (https://mise.jdx.dev).
+# `mise install` in this directory installs them; the shims then pick the right
+# Node whenever you are inside the repo. CI and the Docker images pin Node 24 too
+# (.github/workflows/ci.yml, Dockerfile), so keep this line in step with them.
+[tools]
+node = "24"
