@@ -28,6 +28,7 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./app/client/src:/app/src
+      - ./app/client/public:/app/public
       - ./app/client/index.html:/app/index.html
       - ./app/client/vite.config.ts:/app/vite.config.ts
       - ./app/client/tsconfig.json:/app/tsconfig.json

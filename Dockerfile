@@ -17,6 +17,8 @@ COPY app/server/ ./app/server/
 # Client source
 COPY app/client/index.html app/client/vite.config.ts app/client/tsconfig.json ./app/client/
 COPY app/client/src/ ./app/client/src/
+# Static files Vite copies into dist unchanged (favicon, touch icon).
+COPY app/client/public/ ./app/client/public/
 
 # Build everything
 RUN npm run build
