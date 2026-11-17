@@ -1,0 +1,142 @@
+{
+  "meetingID": "0F1E2D3C-4B5A-4978-8796-A5B4C3D2E1F0",
+  "speakers": [
+    {
+      "label": "Room 1",
+      "ref": {
+        "cluster": "0",
+        "stream": "microphone"
+      }
+    },
+    {
+      "label": "Remote 1",
+      "ref": {
+        "cluster": "1",
+        "stream": "system"
+      }
+    },
+    {
+      "label": "Room 2",
+      "ref": {
+        "cluster": "2",
+        "stream": "microphone"
+      }
+    }
+  ],
+  "utterances": [
+    {
+      "end": 3,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 0,
+      "text": "morning all, the migration ships Friday",
+      "textConfidence": 0.8,
+      "tokens": [
+        {
+          "confidence": 0.95,
+          "end": 0.5,
+          "start": 0,
+          "text": "morning"
+        },
+        {
+          "end": 0.8,
+          "start": 0.5,
+          "text": "all"
+        }
+      ]
+    },
+    {
+      "end": 6,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.42,
+      "start": 3,
+      "text": "the evalves finished overnight",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 4.5,
+      "overlapped": true,
+      "speaker": {
+        "cluster": "2",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 4,
+      "text": "yeah",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 9,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 6,
+      "text": "we fine tuned with cue lura yesterday",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 12,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.2,
+      "start": 9,
+      "text": "Halcion signed the contract",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 13,
+      "overlapped": false,
+      "speaker": {
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.1,
+      "start": 12,
+      "text": "mumble",
+      "tokens": []
+    },
+    {
+      "end": 16,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 13,
+      "text": "those evils keep regressing, hello",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 19,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 16,
+      "text": "emails are stuck in the queue again",
+      "textConfidence": 0.8,
+      "tokens": []
+    }
+  ]
+}

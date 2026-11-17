@@ -1,0 +1,20 @@
+{
+  "applied": [
+    {
+      "origin": "auto",
+      "tagID": "starter-interview"
+    },
+    {
+      "origin": "human",
+      "tagID": "starter-work"
+    }
+  ],
+  "dismissed": [],
+  "fingerprint": "be9fb9151062876c",
+  "removed": [],
+  "suggestion": {
+    "description": "",
+    "name": "Onsite"
+  },
+  "taggerVersion": 3
+}

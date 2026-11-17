@@ -1,0 +1,27 @@
+{
+  "meetingID": "44444444-4444-4444-8444-444444444444",
+  "speakers": [
+    {
+      "label": "Room 1",
+      "ref": {
+        "cluster": "0",
+        "stream": "microphone"
+      }
+    }
+  ],
+  "utterances": [
+    {
+      "end": 2,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 0,
+      "text": "hello from sync two",
+      "textConfidence": 0.8,
+      "tokens": []
+    }
+  ]
+}

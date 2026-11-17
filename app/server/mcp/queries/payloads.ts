@@ -58,9 +58,9 @@ export type UtterancePayload = {
   stream?: string;
   bleed_suspected?: boolean;
   during_utterance_index?: number;
-  cluster_id?: string | null;
+  cluster_id?: string;
   label_origin?: LabelOriginPayload;
-  enrolled_voice_id?: string | null;
+  enrolled_voice_id?: string;
   tokens?: TokenPayload[];
 };
 

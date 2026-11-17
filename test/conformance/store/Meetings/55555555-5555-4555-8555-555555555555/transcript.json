@@ -1,0 +1,47 @@
+{
+  "meetingID": "55555555-5555-4555-8555-555555555555",
+  "speakers": [
+    {
+      "label": "Room 1",
+      "ref": {
+        "cluster": "0",
+        "stream": "microphone"
+      }
+    },
+    {
+      "label": "Dominique",
+      "ref": {
+        "cluster": "1",
+        "stream": "system"
+      }
+    }
+  ],
+  "utterances": [
+    {
+      "end": 2,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 0,
+      "text": "hello everyone",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 4,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 2,
+      "text": "hello, Dominique here",
+      "textConfidence": 0.8,
+      "tokens": []
+    }
+  ]
+}

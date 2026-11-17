@@ -66,7 +66,7 @@
     { "name": "search_transcripts", "arguments": { "query": "aardvark" } },
     { "name": "search_transcripts", "arguments": { "query": "migration", "meeting_ids": ["banana"] } },
     { "name": "search_transcripts", "arguments": { "query": "migration", "meeting_ids": "0F1E2D3C-4B5A-4978-8796-A5B4C3D2E1F0" } },
-    { "name": "search_transcripts", "arguments": { "query": "migration", "meeting_ids": [{ "id": "x" }] } },
+    { "name": "search_transcripts", "arguments": { "query": "migration", "meeting_ids": [3] } },
     { "name": "search_transcripts", "arguments": { "query": "migration", "match": "strict" } },
     { "name": "search_transcripts", "arguments": { "query": "" } },
     { "name": "search_transcripts", "arguments": { "query": "migration", "limit": "lots" } },

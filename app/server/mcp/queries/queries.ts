@@ -174,9 +174,11 @@ export function utterancePayload(
     stream: full ? u.speaker.stream : undefined,
     bleed_suspected: bleedSuspected ? true : undefined,
     during_utterance_index: full ? options.duringUtteranceIndex : undefined,
-    cluster_id: full ? (u.speaker.cluster ?? null) : undefined,
+    // Absent, not null, when nobody could attribute the line or no voice was
+    // matched: Scribe's `TranscriptLinePayload` encodes both only if present.
+    cluster_id: full ? u.speaker.cluster : undefined,
     label_origin: full ? resolved.origin(u.speaker) : undefined,
-    enrolled_voice_id: full ? (resolved.enrolledVoiceID(u.speaker) ?? null) : undefined,
+    enrolled_voice_id: full ? resolved.enrolledVoiceID(u.speaker) : undefined,
     tokens: options.includeTokens
       ? u.tokens.map((t) => ({
           text: t.text,

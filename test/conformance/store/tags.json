@@ -1,0 +1,60 @@
+{
+  "tags": [
+    {
+      "description": "Anything to do with my job.",
+      "id": "starter-work",
+      "isAutomatic": true,
+      "name": "Work",
+      "tier": "context"
+    },
+    {
+      "description": "Life outside work: health, family, friends.",
+      "id": "starter-personal",
+      "isAutomatic": true,
+      "name": "Personal",
+      "tier": "context"
+    },
+    {
+      "description": "A short, recurring team status meeting.",
+      "id": "starter-standup",
+      "isAutomatic": true,
+      "name": "Standup",
+      "tier": "format"
+    },
+    {
+      "description": "A private meeting between me and one colleague.",
+      "id": "starter-one-on-one",
+      "isAutomatic": true,
+      "name": "1:1",
+      "tier": "format"
+    },
+    {
+      "description": "I am interviewing a candidate.",
+      "id": "starter-interview",
+      "isAutomatic": true,
+      "name": "Interview",
+      "tier": "format"
+    },
+    {
+      "description": "I am the candidate being interviewed.",
+      "id": "starter-interviewee",
+      "isAutomatic": true,
+      "name": "Interviewee",
+      "tier": "format"
+    },
+    {
+      "description": "A therapy or counselling session: me alone with a therapist.",
+      "id": "starter-therapy",
+      "isAutomatic": true,
+      "name": "Therapy",
+      "tier": "format"
+    },
+    {
+      "description": "Deep technical discussion: code, system design, debugging.",
+      "id": "starter-technical",
+      "isAutomatic": true,
+      "name": "Technical",
+      "tier": "topic"
+    }
+  ]
+}
