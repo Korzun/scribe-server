@@ -1,0 +1,25 @@
+{
+  "entries": [
+    {
+      "name": "Dominique",
+      "origin": {
+        "inferred": {}
+      },
+      "ref": {
+        "cluster": "1",
+        "stream": "system"
+      }
+    },
+    {
+      "name": "Sam",
+      "origin": {
+        "human": {}
+      },
+      "ref": {
+        "cluster": "0",
+        "stream": "microphone"
+      }
+    }
+  ],
+  "refusals": []
+}

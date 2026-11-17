@@ -1,0 +1,60 @@
+{
+  "meetingID": "22222222-2222-4222-8222-222222222222",
+  "speakers": [
+    {
+      "label": "Room 1",
+      "ref": {
+        "cluster": "0",
+        "stream": "microphone"
+      }
+    },
+    {
+      "label": "Remote 1",
+      "ref": {
+        "cluster": "1",
+        "stream": "system"
+      }
+    }
+  ],
+  "utterances": [
+    {
+      "end": 3,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 0,
+      "text": "Go ahead.",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 22,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 20,
+      "text": "Hi, my name is Dominique.",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 30,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 22,
+      "text": "we should ship the migration",
+      "textConfidence": 0.8,
+      "tokens": []
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "name": "Dana",
+      "origin": {
+        "voiceprint": {
+          "id": "v1"
+        }
+      },
+      "ref": {
+        "cluster": "0",
+        "stream": "microphone"
+      }
+    }
+  ],
+  "refusals": []
+}

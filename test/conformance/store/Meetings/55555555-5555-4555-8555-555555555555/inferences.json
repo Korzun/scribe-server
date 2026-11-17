@@ -1,0 +1,20 @@
+{
+  "entries": [
+    {
+      "evidence": [
+        {
+          "kind": "self_introduction",
+          "quote": "hello, Dominique here",
+          "utterance_index": 1
+        }
+      ],
+      "name": "Dominique",
+      "ref": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "status": "applied",
+      "tier": "strong"
+    }
+  ]
+}

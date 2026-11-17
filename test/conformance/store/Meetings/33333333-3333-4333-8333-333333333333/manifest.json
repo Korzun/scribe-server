@@ -1,0 +1,10 @@
+{
+  "bleedWindows": [],
+  "deviceIdentifier": "Apple M3",
+  "duration": 600,
+  "endedAt": "1970-01-02T00:10:00Z",
+  "meetingID": "33333333-3333-4333-8333-333333333333",
+  "sampleRate": 16000,
+  "startedAt": "1970-01-02T00:00:00Z",
+  "title": "Sync 1"
+}

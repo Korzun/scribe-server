@@ -1,0 +1,5221 @@
+{
+  "meetingID": "77777777-7777-4777-8777-777777777777",
+  "speakers": [
+    {
+      "label": "Room 1",
+      "ref": {
+        "cluster": "0",
+        "stream": "microphone"
+      }
+    },
+    {
+      "label": "Remote 1",
+      "ref": {
+        "cluster": "1",
+        "stream": "system"
+      }
+    }
+  ],
+  "utterances": [
+    {
+      "end": 1,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 0,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 0",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 2,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 1,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 1",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 3,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 2,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 2",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 4,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 3,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 3",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 5,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 4,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 4",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 6,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 5,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 5",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 7,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 6,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 6",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 8,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 7,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 7",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 9,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 8,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 8",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 10,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 9,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 9",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 11,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 10,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 10",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 12,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 11,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 11",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 13,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 12,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 12",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 14,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 13,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 13",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 15,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 14,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 14",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 16,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 15,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 15",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 17,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 16,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 16",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 18,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 17,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 17",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 19,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 18,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 18",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 20,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 19,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 19",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 21,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 20,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 20",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 22,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 21,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 21",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 23,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 22,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 22",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 24,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 23,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 23",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 25,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 24,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 24",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 26,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 25,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 25",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 27,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 26,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 26",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 28,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 27,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 27",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 29,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 28,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 28",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 30,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 29,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 29",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 31,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 30,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 30",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 32,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 31,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 31",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 33,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 32,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 32",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 34,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 33,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 33",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 35,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 34,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 34",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 36,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 35,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 35",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 37,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 36,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 36",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 38,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 37,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 37",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 39,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 38,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 38",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 40,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 39,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 39",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 41,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 40,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 40",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 42,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 41,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 41",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 43,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 42,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 42",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 44,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 43,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 43",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 45,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 44,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 44",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 46,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 45,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 45",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 47,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 46,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 46",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 48,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 47,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 47",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 49,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 48,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 48",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 50,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 49,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 49",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 51,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 50,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 50",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 52,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 51,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 51",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 53,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 52,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 52",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 54,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 53,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 53",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 55,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 54,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 54",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 56,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 55,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 55",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 57,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 56,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 56",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 58,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 57,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 57",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 59,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 58,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 58",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 60,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 59,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 59",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 61,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 60,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 60",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 62,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 61,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 61",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 63,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 62,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 62",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 64,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 63,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 63",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 65,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 64,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 64",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 66,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 65,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 65",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 67,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 66,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 66",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 68,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 67,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 67",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 69,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 68,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 68",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 70,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 69,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 69",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 71,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 70,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 70",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 72,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 71,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 71",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 73,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 72,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 72",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 74,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 73,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 73",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 75,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 74,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 74",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 76,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 75,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 75",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 77,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 76,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 76",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 78,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 77,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 77",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 79,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 78,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 78",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 80,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 79,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 79",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 81,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 80,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 80",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 82,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 81,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 81",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 83,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 82,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 82",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 84,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 83,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 83",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 85,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 84,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 84",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 86,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 85,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 85",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 87,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 86,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 86",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 88,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 87,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 87",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 89,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 88,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 88",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 90,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 89,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 89",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 91,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 90,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 90",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 92,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 91,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 91",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 93,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 92,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 92",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 94,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 93,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 93",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 95,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 94,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 94",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 96,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 95,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 95",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 97,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 96,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 96",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 98,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 97,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 97",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 99,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 98,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 98",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 100,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 99,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 99",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 101,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 100,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 100",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 102,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 101,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 101",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 103,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 102,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 102",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 104,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 103,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 103",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 105,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 104,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 104",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 106,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 105,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 105",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 107,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 106,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 106",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 108,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 107,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 107",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 109,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 108,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 108",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 110,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 109,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 109",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 111,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 110,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 110",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 112,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 111,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 111",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 113,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 112,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 112",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 114,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 113,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 113",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 115,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 114,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 114",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 116,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 115,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 115",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 117,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 116,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 116",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 118,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 117,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 117",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 119,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 118,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 118",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 120,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 119,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 119",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 121,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 120,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 120",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 122,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 121,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 121",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 123,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 122,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 122",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 124,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 123,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 123",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 125,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 124,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 124",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 126,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 125,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 125",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 127,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 126,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 126",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 128,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 127,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 127",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 129,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 128,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 128",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 130,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 129,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 129",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 131,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 130,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 130",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 132,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 131,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 131",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 133,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 132,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 132",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 134,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 133,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 133",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 135,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 134,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 134",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 136,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 135,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 135",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 137,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 136,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 136",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 138,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 137,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 137",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 139,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 138,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 138",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 140,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 139,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 139",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 141,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 140,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 140",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 142,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 141,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 141",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 143,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 142,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 142",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 144,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 143,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 143",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 145,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 144,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 144",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 146,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 145,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 145",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 147,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 146,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 146",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 148,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 147,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 147",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 149,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 148,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 148",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 150,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 149,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 149",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 151,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 150,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 150",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 152,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 151,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 151",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 153,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 152,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 152",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 154,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 153,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 153",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 155,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 154,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 154",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 156,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 155,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 155",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 157,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 156,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 156",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 158,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 157,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 157",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 159,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 158,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 158",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 160,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 159,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 159",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 161,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 160,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 160",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 162,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 161,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 161",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 163,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 162,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 162",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 164,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 163,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 163",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 165,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 164,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 164",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 166,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 165,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 165",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 167,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 166,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 166",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 168,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 167,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 167",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 169,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 168,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 168",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 170,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 169,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 169",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 171,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 170,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 170",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 172,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 171,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 171",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 173,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 172,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 172",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 174,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 173,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 173",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 175,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 174,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 174",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 176,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 175,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 175",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 177,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 176,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 176",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 178,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 177,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 177",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 179,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 178,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 178",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 180,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 179,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 179",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 181,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 180,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 180",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 182,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 181,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 181",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 183,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 182,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 182",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 184,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 183,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 183",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 185,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 184,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 184",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 186,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 185,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 185",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 187,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 186,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 186",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 188,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 187,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 187",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 189,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 188,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 188",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 190,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 189,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 189",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 191,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 190,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 190",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 192,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 191,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 191",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 193,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 192,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 192",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 194,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 193,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 193",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 195,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 194,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 194",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 196,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 195,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 195",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 197,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 196,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 196",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 198,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 197,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 197",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 199,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 198,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 198",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 200,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 199,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 199",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 201,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 200,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 200",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 202,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 201,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 201",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 203,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 202,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 202",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 204,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 203,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 203",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 205,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 204,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 204",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 206,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 205,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 205",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 207,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 206,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 206",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 208,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 207,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 207",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 209,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 208,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 208",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 210,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 209,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 209",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 211,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 210,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 210",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 212,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 211,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 211",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 213,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 212,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 212",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 214,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 213,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 213",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 215,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 214,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 214",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 216,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 215,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 215",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 217,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 216,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 216",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 218,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 217,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 217",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 219,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 218,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 218",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 220,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 219,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 219",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 221,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 220,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 220",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 222,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 221,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 221",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 223,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 222,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 222",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 224,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 223,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 223",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 225,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 224,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 224",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 226,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 225,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 225",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 227,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 226,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 226",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 228,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 227,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 227",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 229,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 228,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 228",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 230,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 229,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 229",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 231,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 230,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 230",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 232,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 231,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 231",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 233,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 232,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 232",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 234,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 233,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 233",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 235,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 234,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 234",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 236,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 235,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 235",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 237,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 236,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 236",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 238,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 237,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 237",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 239,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 238,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 238",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 240,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 239,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 239",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 241,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 240,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 240",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 242,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 241,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 241",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 243,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 242,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 242",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 244,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 243,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 243",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 245,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 244,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 244",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 246,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 245,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 245",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 247,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 246,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 246",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 248,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 247,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 247",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 249,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 248,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 248",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 250,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 249,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 249",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 251,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 250,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 250",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 252,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 251,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 251",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 253,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 252,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 252",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 254,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 253,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 253",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 255,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 254,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 254",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 256,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 255,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 255",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 257,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 256,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 256",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 258,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 257,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 257",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 259,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 258,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 258",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 260,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 259,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 259",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 261,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 260,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 260",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 262,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 261,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 261",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 263,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 262,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 262",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 264,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 263,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 263",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 265,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 264,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 264",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 266,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 265,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 265",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 267,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 266,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 266",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 268,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 267,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 267",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 269,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 268,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 268",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 270,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 269,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 269",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 271,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 270,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 270",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 272,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 271,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 271",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 273,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 272,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 272",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 274,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 273,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 273",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 275,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 274,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 274",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 276,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 275,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 275",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 277,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 276,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 276",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 278,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 277,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 277",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 279,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 278,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 278",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 280,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 279,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 279",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 281,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 280,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 280",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 282,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 281,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 281",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 283,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 282,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 282",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 284,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 283,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 283",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 285,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 284,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 284",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 286,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 285,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 285",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 287,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 286,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 286",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 288,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 287,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 287",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 289,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 288,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 288",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 290,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 289,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 289",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 291,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 290,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 290",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 292,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 291,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 291",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 293,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 292,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 292",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 294,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 293,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 293",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 295,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 294,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 294",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 296,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 295,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 295",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 297,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 296,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 296",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 298,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 297,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 297",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 299,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 298,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 298",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 300,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 299,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 299",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 301,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 300,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 300",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 302,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 301,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 301",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 303,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 302,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 302",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 304,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 303,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 303",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 305,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 304,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 304",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 306,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 305,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 305",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 307,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 306,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 306",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 308,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 307,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 307",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 309,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 308,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 308",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 310,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 309,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 309",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 311,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 310,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 310",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 312,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 311,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 311",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 313,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 312,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 312",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 314,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 313,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 313",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 315,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 314,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 314",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 316,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 315,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 315",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 317,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 316,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 316",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 318,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 317,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 317",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 319,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 318,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 318",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 320,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 319,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 319",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 321,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 320,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 320",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 322,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 321,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 321",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 323,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 322,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 322",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 324,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 323,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 323",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 325,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 324,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 324",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 326,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 325,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 325",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 327,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 326,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 326",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 328,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 327,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 327",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 329,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 328,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 328",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 330,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 329,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 329",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 331,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 330,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 330",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 332,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 331,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 331",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 333,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 332,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 332",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 334,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 333,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 333",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 335,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 334,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 334",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 336,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 335,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 335",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 337,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 336,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 336",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 338,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 337,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 337",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 339,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 338,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 338",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 340,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 339,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 339",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 341,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 340,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 340",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 342,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 341,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 341",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 343,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 342,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 342",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 344,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 343,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 343",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 345,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 344,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 344",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 346,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 345,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 345",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 347,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 346,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 346",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 348,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 347,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 347",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 349,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 348,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 348",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 350,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 349,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 349",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 351,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 350,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 350",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 352,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 351,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 351",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 353,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 352,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 352",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 354,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 353,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 353",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 355,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 354,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 354",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 356,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 355,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 355",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 357,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 356,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 356",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 358,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 357,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 357",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 359,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 358,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 358",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 360,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 359,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 359",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 361,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 360,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 360",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 362,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 361,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 361",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 363,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 362,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 362",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 364,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 363,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 363",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 365,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 364,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 364",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 366,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 365,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 365",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 367,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 366,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 366",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 368,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 367,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 367",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 369,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 368,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 368",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 370,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 369,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 369",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 371,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 370,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 370",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 372,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 371,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 371",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 373,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 372,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 372",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 374,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 373,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 373",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 375,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 374,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 374",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 376,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 375,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 375",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 377,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 376,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 376",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 378,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 377,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 377",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 379,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 378,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 378",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 380,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 379,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 379",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 381,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 380,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 380",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 382,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 381,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 381",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 383,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 382,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 382",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 384,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 383,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 383",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 385,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 384,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 384",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 386,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 385,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 385",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 387,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 386,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 386",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 388,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 387,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 387",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 389,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 388,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 388",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 390,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 389,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 389",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 391,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 390,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 390",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 392,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 391,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 391",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 393,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 392,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 392",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 394,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 393,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 393",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 395,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 394,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 394",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 396,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 395,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 395",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 397,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 396,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 396",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 398,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 397,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 397",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 399,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "0",
+        "stream": "microphone"
+      },
+      "speakerConfidence": 0.9,
+      "start": 398,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 398",
+      "textConfidence": 0.8,
+      "tokens": []
+    },
+    {
+      "end": 400,
+      "overlapped": false,
+      "speaker": {
+        "cluster": "1",
+        "stream": "system"
+      },
+      "speakerConfidence": 0.9,
+      "start": 399,
+      "text": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 399",
+      "textConfidence": 0.8,
+      "tokens": []
+    }
+  ]
+}
