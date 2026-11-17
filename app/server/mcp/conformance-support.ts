@@ -1,16 +1,18 @@
 /**
- * The conformance fixture's shape (spec §10, "Keeping them honest") and the
- * normalisation both doors' payloads go through before they are compared.
+ * The conformance fixture's shape (spec §10, "Keeping them honest"), the
+ * script runner both doors go through, and the normalisation their payloads
+ * go through before they are compared.
  *
- * `test/conformance/` is exported by `ScribeMCPTests` in the Scribe repo
- * (`Scripts/export-mcp-conformance.sh`): a store on disk, a fixed script of
- * tool calls, and the parsed results the stdio server gave. The vault test
- * encrypts the store into a temporary library, runs the same script against
- * the remote tools, and compares parsed payloads, not bytes. Excluded: cursor
- * strings (opaque per door); the server's `instructions` and version; date
- * formatting, compared as instants; and the case of meeting ids (Scribe emits
- * `UUID.uuidString`, uppercase; the vault emits its canonical lowercase).
- * Test support only.
+ * `test/conformance/` holds `script.json` (a fixed script of tool calls,
+ * source) and what `scripts/export-mcp-conformance.ts` writes beside it: the
+ * corpus as a Scribe store on disk (`store/`, from `conformance-corpus.ts`)
+ * and the parsed results Scribe's stdio server gave (`expected.json`). The
+ * vault test seals the store into a temporary library, runs the same script
+ * against the remote tools, and compares parsed payloads, not bytes.
+ * Excluded: cursor strings (opaque per door); the server's `instructions` and
+ * version; date formatting, compared as instants; and the case of meeting ids
+ * (Scribe emits `UUID.uuidString`, uppercase; the vault emits its canonical
+ * lowercase). Test and export support only.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -33,33 +35,67 @@ export type StepResult = { payload: unknown } | { pages: unknown[] } | { error: 
 
 export type Expected = {
   version: 1;
-  /** The Scribe commit the fixture was exported from; informational. */
+  /** Which Scribe server answered; informational. */
   exportedFrom?: string;
   tools: unknown[];
   results: StepResult[];
 };
 
 export const HOW_TO_EXPORT =
-  'run Scripts/export-mcp-conformance.sh in the Scribe repo and copy its output into test/conformance/';
+  'run `npm run conformance:export` on a Mac with Scribe installed and commit test/conformance/';
 
 export type FixtureState =
   | { kind: 'absent' }
   | { kind: 'partial'; missing: string[] }
   | { kind: 'present'; script: Script; expected: Expected };
 
-const FILES = ['store', 'script.json', 'expected.json'];
+/** What the exporter writes. `script.json` is committed source and is always there. */
+const EXPORTED = ['store', 'expected.json'];
 
 /** Absent (skip), partial (fail: a half-committed fixture), or present. */
 export function fixtureState(dir: string = CONFORMANCE_DIR): FixtureState {
   if (!fs.existsSync(dir)) return { kind: 'absent' };
-  const missing = FILES.filter((f) => !fs.existsSync(path.join(dir, f)));
-  if (missing.length === FILES.length) return { kind: 'absent' };
+  const missing = EXPORTED.filter((f) => !fs.existsSync(path.join(dir, f)));
+  if (missing.length === EXPORTED.length) return { kind: 'absent' };
+  if (!fs.existsSync(path.join(dir, 'script.json'))) missing.push('script.json');
   if (missing.length > 0) return { kind: 'partial', missing };
   return {
     kind: 'present',
     script: JSON.parse(fs.readFileSync(path.join(dir, 'script.json'), 'utf8')) as Script,
     expected: JSON.parse(fs.readFileSync(path.join(dir, 'expected.json'), 'utf8')) as Expected,
   };
+}
+
+/** One tool call at either door: a parsed payload, or the text of an error result. */
+export type ToolCaller = (
+  name: string,
+  args: Record<string, unknown>
+) => Promise<{ payload: unknown } | { error: string }>;
+
+/**
+ * Runs one script step. A `follow` step is called again with the named field
+ * fed back (`next_cursor` as `cursor`, `next_offset` as `offset`) until a page
+ * offers none, and records the pages; an error ends the walk and is recorded
+ * as such. The exporter runs this against Scribe's stdio server and the test
+ * against the vault, so the two doors are asked exactly the same questions.
+ */
+export async function runStep(call: ToolCaller, step: ScriptStep): Promise<StepResult> {
+  if (step.follow === undefined) return call(step.name, step.arguments ?? {});
+
+  const pages: unknown[] = [];
+  let args: Record<string, unknown> = { ...(step.arguments ?? {}) };
+  for (let page = 0; page < 50; page++) {
+    const result = await call(step.name, args);
+    if ('error' in result) return result;
+    pages.push(result.payload);
+    const next =
+      result.payload !== null && typeof result.payload === 'object'
+        ? (result.payload as Record<string, unknown>)[step.follow]
+        : undefined;
+    if (next === undefined || next === null) break;
+    args = step.follow === 'next_cursor' ? { ...args, cursor: next } : { ...args, offset: next };
+  }
+  return { pages };
 }
 
 /** `Meetings/<UUID>/<file>` → the vault blob kind, as spec §6 maps them. */
@@ -93,6 +129,20 @@ export function readStore(dir: string): { meetings: StoreMeeting[]; tagList: Buf
   }
   const tagList = path.join(dir, 'tags.json');
   return { meetings, tagList: fs.existsSync(tagList) ? fs.readFileSync(tagList) : null };
+}
+
+/** The same value with every object's keys sorted, so a file written from it diffs stably. */
+export function sortKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortKeys);
+  if (value !== null && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.keys(record)
+        .sort()
+        .map((k) => [k, sortKeys(record[k])])
+    );
+  }
+  return value;
 }
 
 const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;

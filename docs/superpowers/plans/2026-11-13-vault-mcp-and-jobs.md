@@ -47,36 +47,31 @@ Two further calls the spec left to the builder:
 
 ---
 
-### Task 1: Scribe repo, test-only conformance exporter
-
-**Repo:** `~/Code/scribe` (owner's Mac). Branch `mcp-conformance-export`, its own PR. Touch only `Tests/ScribeMCPTests/` and `Scripts/`.
+### Task 1: Conformance exporter (TypeScript, this repo)
 
 **Files:**
-- Create: `Tests/ScribeMCPTests/Conformance/Corpus.swift` (builds the corpus with `Fixture`)
-- Create: `Tests/ScribeMCPTests/Conformance/script.json` (the fixed script, a test resource)
-- Create: `Tests/ScribeMCPTests/ConformanceExportTests.swift` (the exporter, gated on `SCRIBE_CONFORMANCE_OUT`)
-- Create: `Scripts/export-mcp-conformance.sh`
-- Modify: `Package.swift` only to add `resources: [.copy("Conformance/script.json")]` to `ScribeMCPTests`
+- Create: `app/server/mcp/conformance-corpus.ts` (+ test): the corpus, written as a Scribe store on disk
+- Create: `test/conformance/script.json` (the fixed script, committed source)
+- Create: `scripts/export-mcp-conformance.ts`, run as `npm run conformance:export`
+- Modify: `app/server/mcp/conformance-support.ts` (the step runner, shared with Task 12's test)
 
-**Corpus** (deterministic ids and dates, so a re-export is a no-op diff when nothing changed):
-- Five meetings across days 1 to 6; one unprocessed (manifest only); one legacy manifest (no per-stream durations); one with bleed windows above and below the 0.5 threshold; one with calendar fields (`titleOrigin: .calendar`, `scheduledStart/End`, `attendeeNames` with kinds, and one meeting with names but no kinds); two meetings starting at the same instant (cursor tiebreak).
-- Speakers: one enrolled voice across three meetings with different labels over time; labels with `.human`, `.voiceprint(id:)` and `.inferred` origins; a refusal; an unattributed utterance (`cluster: nil`); overlapped lines; one line with tokens; one backchannel inside another's turn; one line shorter than 1.5 s.
+> Originally planned as a Swift test target in the Scribe repo (https://github.com/Korzun/scribe/pull/1, never run: it needed a Swift toolchain and a second repo to commit in). Replaced by a TypeScript exporter here that drives the `scribe-mcp` binary Scribe.app already ships, over a store it writes itself (`SCRIBE_STORE_ROOT`). Nothing in the Scribe repo changes.
+
+**Corpus** (deterministic ids and dates, so a re-export is a no-op diff when nothing changed; files spelled as Swift's `JSONEncoder` spells them, since Scribe's `Store` is the reader):
+- Seven meetings across days 0 to 5; one unprocessed (manifest only); one legacy manifest (no per-stream durations); one with bleed windows above and below the 0.5 threshold; one with calendar fields (`titleOrigin: calendar`, `scheduledStart/End`, `attendeeNames` with kinds) and one with names but no kinds; two meetings starting at the same instant (cursor tiebreak); one of four hundred long lines, so every page of its transcript and of a search through it is cut by the budget.
+- Speakers: one enrolled voice across two meetings with different labels over time; labels with `human`, `voiceprint` and `inferred` origins; an unattributed utterance (no `cluster`); an overlapped backchannel inside another's turn; one line with tokens; lines shorter than 1.5 s.
 - Inferences: a strong applied, a weak suggested, a dismissed.
 - Summaries: one fresh, one stale (fingerprint mismatch), one with an old `summarizerVersion`.
-- Tags: a saved list with a renamed starter tag plus one Topic; meetings with human and auto tags, a stale fingerprint, a suggestion; one meeting with no tags file.
-- Text chosen so fuzzy search has an exact hit, an edit-distance hit (`evals` vs `evalves`), a phonetic hit, a pair-key hit (`QLoRA` vs `cue lura`), and a literal-only miss.
+- Tags: the starter list; meetings with human and auto tags, a stale fingerprint, a suggestion; meetings with no tags file.
+- Text chosen so fuzzy search has an exact hit, an edit-distance hit (`evals` vs `evalves`), a phonetic hit (`Halcyon` vs `Halcion`), a pair-key hit (`QLoRA` vs `cue lura`), and a literal-only miss.
 
-**Script** (`script.json`): an array of steps `{ "name": string, "arguments": object, "follow"?: "next_cursor" | "next_offset" }`. A `follow` step is run repeatedly, feeding the named field back as `cursor` (or `offset`), and records the array of pages. Steps cover every tool with and without filters, the budget cut (a `limit` that overruns 25,000 characters), each error message (`malformedMeetingID`, `unknownMeeting`, `conflictingWindow`, a missing required argument, an unreadable `limit`, a bad `detail`, a bad `match`), null arguments, string-typed numbers, and `tools/list`.
+**Script** (`script.json`): `{ "version": 1, "steps": [{ "name", "arguments", "follow"? }] }`. A `follow` step is run repeatedly, feeding the named field back as `cursor` (or `offset`), and records the array of pages. Steps cover every tool with and without filters, the budget cut, each error message (malformed and unknown meeting ids, a conflicting window, a missing required argument, an unreadable `limit`, a bad `detail`, a bad `match`), null arguments, string-typed numbers, an unknown tool, and `tools/list`.
 
-**Exporter:** a `@Test` that returns early unless `ProcessInfo.processInfo.environment["SCRIBE_CONFORMANCE_OUT"]` is set. It builds the corpus into a `Fixture`, copies `fixture.root` to `$OUT/store`, copies `script.json` to `$OUT/script.json`, runs every step through `ToolCatalog.call` (following cursors as described), parses each result's one text block as JSON (or records `{ "error": text }` for `isError`), and writes `$OUT/expected.json` as `{ "tools": [...catalog.tools encoded with ResponseBudget.encoder()...], "results": [...] }` with sorted keys. It also writes `$OUT/README.md` naming the commit it was exported from.
+**Exporter:** writes the corpus to `test/conformance/store/`, spawns `scribe-mcp` (default `/Applications/Scribe.app/Contents/MacOS/scribe-mcp`, or `--scribe-mcp <path>`) with `SCRIBE_STORE_ROOT` pointing at it, connects an SDK client over stdio, lists tools, runs every step with the shared `runStep` (parsing each result's one text block as JSON, or recording `{ "error": text }` for `isError`), and writes `expected.json` as `{ version, exportedFrom, tools, results }` with sorted keys. Needs a Mac with Scribe installed and nothing else.
 
-**Script:** `Scripts/export-mcp-conformance.sh [out-dir]` runs `SCRIBE_CONFORMANCE_OUT=<abs path> swift test --filter ConformanceExportTests` and prints the copy command for the vault repo (`test/conformance/`).
-
-- [x] **Step 1:** Write `Corpus.swift` and `script.json`.
-- [x] **Step 2:** Write the exporter test; `swift test --filter ConformanceExportTests` passes (early return) without the variable, writes the three files with it.
-- [ ] **Step 3:** Run the script, copy the output into this repo's `test/conformance/`, commit in both repos.
-
-> This machine has no Swift toolchain and no Scribe checkout under `~/Code`; the Swift files are written against the sources at `~/code/scribe` but are not compiled here. The owner runs Step 3 on the Mac. Task 12's test skips until the output lands.
+- [x] **Step 1:** Port the corpus to TypeScript and commit `script.json`; the corpus test proves the vault's own tools can read the store.
+- [x] **Step 2:** Write the exporter; `npm run conformance:export -- --help` works, and without a `scribe-mcp` it fails with the path it looked at.
+- [ ] **Step 3:** Run `npm run conformance:export` on the Mac, run the conformance test, commit `store/` and `expected.json`.
 
 ---
 
@@ -217,3 +212,5 @@ Reads `test/conformance/{store,script.json,expected.json}`; `describe.skipIf(!ex
 ### Task 14: Acceptance (owner-run)
 
 Deploy the merged PR to Coolify; add `https://<domain>/mcp` as a custom connector in claude.ai; complete consent; list meetings and search a transcript; Disconnect from the admin page; confirm the connector fails. Watch the logs for anything that is not an id, a count or a status.
+
+- [x] Done 2026-11-15 on https://scribe.korzun.com: connected from claude.ai, consent approved, tools answered; the owner chose to leave the connector connected.

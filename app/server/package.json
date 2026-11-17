@@ -13,9 +13,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "oxlint && oxfmt --check \"**/*.ts\" && tsc --noEmit && tsc --noEmit -p tsconfig.test.json && npm run lint:cli",
-    "lint:cli": "tsc -p tsconfig.cli.json && cd ../../scripts && oxlint -c ../app/server/.oxlintrc.json vault-cli.ts && oxfmt --check vault-cli.ts",
-    "lint:fix": "oxlint --fix && oxfmt \"**/*.ts\" && cd ../../scripts && oxlint --fix -c ../app/server/.oxlintrc.json vault-cli.ts && oxfmt vault-cli.ts",
-    "vault": "tsx ../../scripts/vault-cli.ts"
+    "lint:cli": "tsc -p tsconfig.cli.json && cd ../../scripts && oxlint -c ../app/server/.oxlintrc.json vault-cli.ts export-mcp-conformance.ts && oxfmt --check vault-cli.ts export-mcp-conformance.ts",
+    "lint:fix": "oxlint --fix && oxfmt \"**/*.ts\" && cd ../../scripts && oxlint --fix -c ../app/server/.oxlintrc.json vault-cli.ts export-mcp-conformance.ts && oxfmt vault-cli.ts export-mcp-conformance.ts",
+    "vault": "tsx ../../scripts/vault-cli.ts",
+    "conformance:export": "tsx ../../scripts/export-mcp-conformance.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

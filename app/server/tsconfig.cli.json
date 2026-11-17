@@ -1,15 +1,17 @@
 {
-  // Type-checks the command-line client (`scripts/vault-cli.ts`, run with
-  // tsx), which lives outside this project so the build never ships it: the
+  // Type-checks the scripts run with tsx from outside this project, so the
+  // build never ships them: the command-line client (`scripts/vault-cli.ts`)
+  // and the conformance exporter (`scripts/export-mcp-conformance.ts`). The
   // build config's `include` is this directory, and nothing in it imports
-  // the CLI. The CLI imports the shared client and the crypto from here, so
-  // those are checked again through it, against this project's settings.
+  // them. They import the shared client, the crypto and the conformance
+  // modules from here, so those are checked again through them, against this
+  // project's settings.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
     "rootDir": "../..",
     "types": ["node"]
   },
-  "include": ["../../scripts/vault-cli.ts"],
+  "include": ["../../scripts/vault-cli.ts", "../../scripts/export-mcp-conformance.ts"],
   "exclude": []
 }

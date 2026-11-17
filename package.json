@@ -19,7 +19,8 @@
     "lint": "npm run lint -w app/server && npm run lint -w app/client",
     "lint:fix": "npm run lint:fix -w app/server && npm run lint:fix -w app/client",
     "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
-    "vault": "npm run vault -w app/server --"
+    "vault": "npm run vault -w app/server --",
+    "conformance:export": "npm run conformance:export -w app/server --"
   },
   "devDependencies": {
     "typescript": "^7.0.2"
