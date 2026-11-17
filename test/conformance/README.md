@@ -35,6 +35,12 @@ only one of them is here. Changing a payload on either side, or the corpus,
 means re-running the exporter and committing the result, which is exactly the
 friction wanted. `expected.json` names the Scribe server version it came from.
 
+One step is shaped around a spelling difference rather than testing it: a
+`meeting_ids` element that is not a string is echoed back in the error, and
+Scribe spells an object or array element the way Swift describes a value
+(`["id": x]`) where the vault spells it as JSON. The script uses a number
+there, which both spell the same way.
+
 Compared after normalisation: cursors (`next_cursor`) are dropped, dates are
 compared as instants, meeting ids are compared ignoring case (Scribe emits
 uppercase UUIDs, the vault canonical lowercase), and the server's

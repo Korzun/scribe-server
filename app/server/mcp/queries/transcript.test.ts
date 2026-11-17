@@ -333,9 +333,10 @@ describe('utterancePayload', () => {
       text_confidence: 0.7,
       overlapped: true,
       label_origin: 'generated',
-      enrolled_voice_id: null,
       timestamp: '01:01:01',
     });
+    // Undefined here, so the encoded line has no key, as Scribe's does.
+    expect(payload.enrolled_voice_id).toBeUndefined();
   });
 
   it('a typed name, a voiceprint match and an inferred name are three different facts', () => {
@@ -347,8 +348,8 @@ describe('utterancePayload', () => {
     expect(build(typed.transcript.utterances[0]!, typed, 'full')).toMatchObject({
       speaker: 'Dana',
       label_origin: 'human',
-      enrolled_voice_id: null,
     });
+    expect(build(typed.transcript.utterances[0]!, typed, 'full').enrolled_voice_id).toBeUndefined();
     const matched = new ResolvedTranscript(
       t,
       new Labels().set('Dana', mic, voiceprint('voice-7')).file
@@ -364,8 +365,8 @@ describe('utterancePayload', () => {
     expect(build(heard.transcript.utterances[0]!, heard, 'full')).toMatchObject({
       speaker: 'Dominique',
       label_origin: 'inferred',
-      enrolled_voice_id: null,
     });
+    expect(build(heard.transcript.utterances[0]!, heard, 'full').enrolled_voice_id).toBeUndefined();
     // A file written before origins existed holds names a person typed.
     const legacy = new ResolvedTranscript(t, { entries: [{ ref: mic, name: 'Dana' }] });
     expect(build(legacy.transcript.utterances[0]!, legacy, 'full').label_origin).toBe('human');
@@ -377,11 +378,11 @@ describe('utterancePayload', () => {
       transcript({ speakers: [], utterances: [utterance('mumble', nobody, 0, 1)] }),
       null
     );
-    expect(build(resolved.transcript.utterances[0]!, resolved, 'full')).toMatchObject({
-      speaker: 'Unknown',
-      cluster_id: null,
-      text: 'mumble',
-    });
+    const line = build(resolved.transcript.utterances[0]!, resolved, 'full');
+    expect(line).toMatchObject({ speaker: 'Unknown', text: 'mumble' });
+    // No cluster is no key once encoded, as Scribe spells it, not a null.
+    expect(line.cluster_id).toBeUndefined();
+    expect(JSON.parse(JSON.stringify(line))).not.toHaveProperty('cluster_id');
   });
 
   it('tokens are absent unless asked for, and carry no confidence key when the recognizer gave none', () => {
