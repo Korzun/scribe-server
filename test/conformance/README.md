@@ -2,27 +2,38 @@
 
 The remote MCP server in this vault and Scribe's stdio `scribe-mcp` must
 expose the same five tools with the same payloads (design spec §10). This
-directory holds the fixture that proves it, exported from the Scribe repo:
+directory holds the fixture that proves it:
 
 ```
-store/            a Scribe store on disk: Meetings/<UUID>/manifest.json, transcript.json, …, and tags.json
-script.json       a fixed list of tool calls, some marked "follow" to walk pages
-expected.json     the parsed results the stdio server gave, plus its tools/list
+script.json       a fixed list of tool calls, some marked "follow" to walk pages (source)
+store/            the corpus as a Scribe store on disk, written by the exporter
+expected.json     the parsed results Scribe's stdio server gave, plus its tools/list
 ```
 
-To (re)generate it, in the Scribe repo:
+The corpus itself is TypeScript, `app/server/mcp/conformance-corpus.ts`. The
+exporter, `scripts/export-mcp-conformance.ts`, writes it to `store/`, points
+Scribe's own `scribe-mcp` at it (`SCRIBE_STORE_ROOT`, so the real library is
+never touched), runs `script.json` through a real MCP handshake and records
+every answer in `expected.json`. It needs a Mac with Scribe installed, nothing
+else; the bundle carries `scribe-mcp` at a stable path.
+
+To (re)generate it, in this repo on that Mac:
 
 ```bash
-Scripts/export-mcp-conformance.sh
-# then copy its output directory here, replacing store/, script.json and expected.json
+npm ci
+npm run conformance:export                 # Scribe.app's scribe-mcp
+# or: npm run conformance:export -- --scribe-mcp <path to a scribe-mcp build>
+(cd app/server && npx vitest run mcp/conformance.test.ts)
 ```
+
+then commit `store/` and `expected.json` together.
 
 `app/server/mcp/conformance.test.ts` encrypts `store/` into a temporary
 library, runs `script.json` against the remote tools and compares parsed
-payloads. It skips while these three parts are absent and fails if only some
-of them are here. Changing a payload on either side means re-running the
-exporter and committing in both repositories, which is exactly the friction
-wanted.
+payloads. It skips while `store/` and `expected.json` are absent and fails if
+only one of them is here. Changing a payload on either side, or the corpus,
+means re-running the exporter and committing the result, which is exactly the
+friction wanted. `expected.json` names the Scribe server version it came from.
 
 Compared after normalisation: cursors (`next_cursor`) are dropped, dates are
 compared as instants, meeting ids are compared ignoring case (Scribe emits

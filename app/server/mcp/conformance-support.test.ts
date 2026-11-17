@@ -4,7 +4,15 @@ import * as path from 'path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { fixtureState, normalize, normalizeTool, readStore } from './conformance-support';
+import {
+  fixtureState,
+  normalize,
+  normalizeTool,
+  readStore,
+  runStep,
+  sortKeys,
+  type ToolCaller,
+} from './conformance-support';
 
 let dir: string;
 beforeEach(() => {
@@ -58,9 +66,18 @@ describe('fixtureState', () => {
     expect(fixtureState(dir)).toEqual({ kind: 'absent' });
   });
 
-  it('is partial when only some of the three parts are there', () => {
+  it('is absent while only the script (committed source) is there', () => {
     fs.writeFileSync(path.join(dir, 'script.json'), '{"version":1,"steps":[]}');
-    expect(fixtureState(dir)).toEqual({ kind: 'partial', missing: ['store', 'expected.json'] });
+    expect(fixtureState(dir)).toEqual({ kind: 'absent' });
+  });
+
+  it('is partial when only one of the exported parts is there, or the script is gone', () => {
+    fs.writeFileSync(path.join(dir, 'script.json'), '{"version":1,"steps":[]}');
+    fs.mkdirSync(path.join(dir, 'store'));
+    expect(fixtureState(dir)).toEqual({ kind: 'partial', missing: ['expected.json'] });
+    fs.writeFileSync(path.join(dir, 'expected.json'), '{"version":1,"tools":[],"results":[]}');
+    fs.rmSync(path.join(dir, 'script.json'));
+    expect(fixtureState(dir)).toEqual({ kind: 'partial', missing: ['script.json'] });
   });
 
   it('is present with the parsed script and expectations', () => {
@@ -102,5 +119,76 @@ describe('readStore', () => {
     ]);
     expect(store.tagList?.toString()).toBe('{"tags":[]}');
     expect(readStore(path.join(dir, 'empty'))).toEqual({ meetings: [], tagList: null });
+  });
+});
+
+describe('runStep', () => {
+  const calls: Array<[string, Record<string, unknown>]> = [];
+  const door =
+    (answers: Array<{ payload: unknown } | { error: string }>): ToolCaller =>
+    async (name, args) => {
+      calls.push([name, args]);
+      return answers.shift() ?? { error: 'ran out of answers' };
+    };
+  beforeEach(() => calls.splice(0));
+
+  it('calls a plain step once with its arguments, or with none', async () => {
+    expect(await runStep(door([{ payload: { ok: 1 } }]), { name: 'get_meeting' })).toEqual({
+      payload: { ok: 1 },
+    });
+    expect(calls).toEqual([['get_meeting', {}]]);
+  });
+
+  it('walks pages by feeding the followed field back as cursor or offset', async () => {
+    const pages = [
+      { payload: { rows: [1], next_cursor: 'a' } },
+      { payload: { rows: [2], next_cursor: 'b' } },
+      { payload: { rows: [3], next_cursor: null } },
+    ];
+    expect(
+      await runStep(door(pages), {
+        name: 'list_meetings',
+        arguments: { limit: 1 },
+        follow: 'next_cursor',
+      })
+    ).toEqual({
+      pages: [
+        { rows: [1], next_cursor: 'a' },
+        { rows: [2], next_cursor: 'b' },
+        { rows: [3], next_cursor: null },
+      ],
+    });
+    expect(calls.map(([, args]) => args)).toEqual([
+      { limit: 1 },
+      { limit: 1, cursor: 'a' },
+      { limit: 1, cursor: 'b' },
+    ]);
+
+    await runStep(door([{ payload: { next_offset: 2 } }, { payload: {} }]), {
+      name: 'get_transcript',
+      arguments: { meeting_id: 'm' },
+      follow: 'next_offset',
+    });
+    expect(calls.slice(3).map(([, args]) => args)).toEqual([
+      { meeting_id: 'm' },
+      { meeting_id: 'm', offset: 2 },
+    ]);
+  });
+
+  it('records an error that ends a walk as the error, not as pages', async () => {
+    expect(
+      await runStep(door([{ payload: { next_cursor: 'a' } }, { error: 'bad cursor' }]), {
+        name: 'list_speakers',
+        follow: 'next_cursor',
+      })
+    ).toEqual({ error: 'bad cursor' });
+  });
+});
+
+describe('sortKeys', () => {
+  it('sorts keys at every depth and leaves arrays in order', () => {
+    expect(JSON.stringify(sortKeys({ b: [{ z: 1, a: 2 }], a: null }))).toBe(
+      '{"a":null,"b":[{"a":2,"z":1}]}'
+    );
   });
 });

@@ -13,8 +13,8 @@ import {
   normalize,
   normalizeTool,
   readStore,
-  type ScriptStep,
-  type StepResult,
+  runStep,
+  type ToolCaller,
 } from './conformance-support';
 import { connectMcpClient, mintTokens, textOf, type McpTestClient } from './test-support';
 
@@ -38,30 +38,15 @@ describe('the conformance fixture', () => {
   );
 });
 
-/** Runs one script step against the remote door exactly as the exporter ran it against the stdio one. */
-async function runStep(mcp: McpTestClient, step: ScriptStep): Promise<StepResult> {
-  const call = async (
-    args: Record<string, unknown>
-  ): Promise<{ payload: unknown } | { error: string }> => {
-    const result = (await mcp.call(step.name, args)) as CallToolResult;
+/** The remote door as `runStep` asks it: a parsed payload, or the text of an error result. */
+const remoteDoor =
+  (mcp: McpTestClient): ToolCaller =>
+  async (name, args) => {
+    const result = (await mcp.call(name, args)) as CallToolResult;
     return result.isError === true
       ? { error: textOf(result) }
       : { payload: JSON.parse(textOf(result)) as unknown };
   };
-  if (step.follow === undefined) return call(step.arguments ?? {});
-
-  const pages: unknown[] = [];
-  let args: Record<string, unknown> = { ...(step.arguments ?? {}) };
-  for (let page = 0; page < 50; page++) {
-    const result = await call(args);
-    if ('error' in result) return result;
-    pages.push(result.payload);
-    const next = (result.payload as Record<string, unknown>)[step.follow];
-    if (next === undefined || next === null) break;
-    args = step.follow === 'next_cursor' ? { ...args, cursor: next } : { ...args, offset: next };
-  }
-  return { pages };
-}
 
 describe.skipIf(state.kind !== 'present')(
   "the remote tools agree with Scribe's stdio server",
@@ -133,7 +118,7 @@ describe.skipIf(state.kind !== 'present')(
       expect(expected.results).toHaveLength(script.steps.length);
       const mismatches: string[] = [];
       for (const [index, step] of script.steps.entries()) {
-        const actual = normalize(await runStep(mcp, step));
+        const actual = normalize(await runStep(remoteDoor(mcp), step));
         const wanted = normalize(expected.results[index]);
         try {
           expect(actual).toEqual(wanted);
