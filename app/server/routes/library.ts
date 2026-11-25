@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { readSetupCode } from '../config';
 import { isSealed, SEAL_HEADER_LENGTH, TAG_LENGTH } from '../crypto/seal';
 import { logger } from '../logger';
+import { acquireCheck, beginAttempt, type LoginGuard } from '../middleware/login-guard';
 import { ownerAuth } from '../middleware/owner-auth';
 import { createIpRateLimit } from '../middleware/rate-limit';
 import type { BlobStore } from '../services/blob-store';
@@ -33,6 +34,7 @@ export type LibraryRouterDeps = {
   config: AppConfig;
   blobStore: BlobStore;
   gc: GarbageCollector;
+  loginGuard: LoginGuard;
   now: () => number;
 };
 
@@ -120,7 +122,12 @@ function checkSetupCode(dataDir: string, presented: string): { error: string } |
  * The library routes (spec §4, §9). Creation, the salts and the keys-lost
  * reset are unauthenticated by nature (the app has no credential until it has
  * created or joined a library, and the reset is for an owner who has lost
- * theirs), so each sits behind a per-IP rate limit.
+ * theirs), so each sits behind a per-IP rate limit. Creation and the reset
+ * also sit behind the login guard: a client with five wrong setup codes in
+ * 15 minutes is locked out for 15 minutes, and 50 wrong codes in an hour from
+ * anywhere lock both routes for everyone. The password change and the
+ * recovery-code replacement, which verify the owner's auth key, take a check
+ * slot from the guard's cap so argon2 verifies cannot pile up.
  *
  * Nothing here logs a request body, token, key, salt, verifier or setup code:
  * outcomes are logged with ids only.
@@ -131,6 +138,7 @@ export function createLibraryRouter({
   config,
   blobStore,
   gc,
+  loginGuard,
   now,
 }: LibraryRouterDeps): Router {
   const router = Router();
@@ -183,44 +191,52 @@ export function createLibraryRouter({
       }
       const body = parsed.data;
 
-      // The setup code is checked BEFORE the database is touched, and is read
-      // live from options.json so the operator can change it without a restart.
-      const refused = checkSetupCode(config.dataDir, body.setupCode);
-      if (refused !== null) {
-        log.warn(`Library creation refused: ${refused.error}`);
-        res.status(403).json(refused);
-        return;
-      }
-
+      const attempt = beginAttempt(loginGuard, req, res, 'setupCode', config.trustProxyHops, now());
+      if (attempt === null) return;
+      let ok = false;
       try {
-        const created = await createLibrary(
-          prisma,
-          {
-            libraryId: body.libraryId,
-            passwordSalt: body.passwordSalt,
-            recoverySalt: body.recoverySalt,
-            authKey: body.authKey,
-            passwordWrap: body.passwordWrap,
-            recoveryCodes: body.recoveryCodes,
-            device: body.device,
-          },
-          now()
-        );
-        res.status(201).json(
-          created.deviceId === undefined
-            ? { libraryId: created.libraryId }
-            : {
-                libraryId: created.libraryId,
-                deviceId: created.deviceId,
-                deviceToken: created.token,
-              }
-        );
-      } catch (err) {
-        if (err instanceof LibraryExistsError) {
-          res.status(409).json({ error: 'Library exists' });
+        // The setup code is checked BEFORE the database is touched, and is read
+        // live from options.json so the operator can change it without a restart.
+        const refused = checkSetupCode(config.dataDir, body.setupCode);
+        if (refused !== null) {
+          log.warn(`Library creation refused: ${refused.error}`);
+          res.status(403).json(refused);
           return;
         }
-        throw err;
+        ok = true;
+
+        try {
+          const created = await createLibrary(
+            prisma,
+            {
+              libraryId: body.libraryId,
+              passwordSalt: body.passwordSalt,
+              recoverySalt: body.recoverySalt,
+              authKey: body.authKey,
+              passwordWrap: body.passwordWrap,
+              recoveryCodes: body.recoveryCodes,
+              device: body.device,
+            },
+            now()
+          );
+          res.status(201).json(
+            created.deviceId === undefined
+              ? { libraryId: created.libraryId }
+              : {
+                  libraryId: created.libraryId,
+                  deviceId: created.deviceId,
+                  deviceToken: created.token,
+                }
+          );
+        } catch (err) {
+          if (err instanceof LibraryExistsError) {
+            res.status(409).json({ error: 'Library exists' });
+            return;
+          }
+          throw err;
+        }
+      } finally {
+        loginGuard.finish(attempt, ok, now());
       }
     } catch (err) {
       next(err);
@@ -239,20 +255,28 @@ export function createLibraryRouter({
         res.status(400).json({ error: 'Invalid request' });
         return;
       }
-      const refused = checkSetupCode(config.dataDir, parsed.data.setupCode);
-      if (refused !== null) {
-        log.warn(`Library deletion refused: ${refused.error}`);
-        res.status(403).json(refused);
-        return;
+      const attempt = beginAttempt(loginGuard, req, res, 'setupCode', config.trustProxyHops, now());
+      if (attempt === null) return;
+      let ok = false;
+      try {
+        const refused = checkSetupCode(config.dataDir, parsed.data.setupCode);
+        if (refused !== null) {
+          log.warn(`Library deletion refused: ${refused.error}`);
+          res.status(403).json(refused);
+          return;
+        }
+        ok = true;
+        // The wipe, the secret rotation and the file removal, in that order
+        // (see resetLibrary). A failed rotation is a 500: the library is gone,
+        // but browser sessions of it may not be, so this is not a success.
+        if ((await resetLibrary(prisma, blobStore, jwtSecret)) === 'rotation_failed') {
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+        res.status(204).end();
+      } finally {
+        loginGuard.finish(attempt, ok, now());
       }
-      // The wipe, the secret rotation and the file removal, in that order
-      // (see resetLibrary). A failed rotation is a 500: the library is gone,
-      // but browser sessions of it may not be, so this is not a success.
-      if ((await resetLibrary(prisma, blobStore, jwtSecret)) === 'rotation_failed') {
-        res.status(500).json({ error: 'Internal server error' });
-        return;
-      }
-      res.status(204).end();
     } catch (err) {
       next(err);
     }
@@ -303,12 +327,18 @@ export function createLibraryRouter({
         return;
       }
       const { authKey, ...material } = parsed.data;
-      if (!(await changePassword(prisma, authKey, material))) {
-        log.warn('Password change refused: invalid credentials');
-        res.status(401).json({ error: 'Invalid credentials' });
-        return;
+      const release = acquireCheck(loginGuard, res);
+      if (release === null) return;
+      try {
+        if (!(await changePassword(prisma, authKey, material))) {
+          log.warn('Password change refused: invalid credentials');
+          res.status(401).json({ error: 'Invalid credentials' });
+          return;
+        }
+        res.status(204).end();
+      } finally {
+        release();
       }
-      res.status(204).end();
     } catch (err) {
       next(err);
     }
@@ -321,13 +351,19 @@ export function createLibraryRouter({
         res.status(400).json({ error: 'Invalid request' });
         return;
       }
-      const ids = await replaceRecoveryCodes(prisma, parsed.data);
-      if (ids === null) {
-        log.warn('Recovery code regeneration refused: invalid credentials');
-        res.status(401).json({ error: 'Invalid credentials' });
-        return;
+      const release = acquireCheck(loginGuard, res);
+      if (release === null) return;
+      try {
+        const ids = await replaceRecoveryCodes(prisma, parsed.data);
+        if (ids === null) {
+          log.warn('Recovery code regeneration refused: invalid credentials');
+          res.status(401).json({ error: 'Invalid credentials' });
+          return;
+        }
+        res.json({ ids });
+      } finally {
+        release();
       }
-      res.json({ ids });
     } catch (err) {
       next(err);
     }

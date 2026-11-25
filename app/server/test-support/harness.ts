@@ -7,6 +7,7 @@ import type express from 'express';
 
 import { createPrismaClient } from '../db/client';
 import { runMigrations } from '../db/migrate';
+import { LoginGuard } from '../middleware/login-guard';
 import { createServer } from '../server';
 import { createBlobStore, type BlobStore } from '../services/blob-store';
 import { createGarbageCollector, type GarbageCollector } from '../services/gc';
@@ -33,6 +34,8 @@ export type Harness = {
   gc: GarbageCollector;
   /** The app's upload sessions (parts under `dataDir/uploads`), also expired by `gc`. */
   uploads: UploadSessions;
+  /** The app's login guard, so a test can hold check slots. */
+  loginGuard: LoginGuard;
   /** Mutable fake clock; every dep that reads time reads this. */
   now: { value: number };
   close(): Promise<void>;
@@ -77,6 +80,7 @@ export async function createHarness(
   const blobStore = createBlobStore({ root: blobsDir });
   const uploads = createUploadSessions({ prisma, dataDir, blobStore, now: () => now.value });
   const gc = createGarbageCollector({ prisma, blobStore, now: () => now.value, uploads });
+  const loginGuard = new LoginGuard();
   const app = createServer({
     config,
     prisma,
@@ -84,6 +88,7 @@ export async function createHarness(
     blobStore,
     gc,
     uploads,
+    loginGuard,
     now: () => now.value,
   });
 
@@ -97,6 +102,7 @@ export async function createHarness(
     jwtSecret,
     gc,
     uploads,
+    loginGuard,
     now,
     async close() {
       await prisma.$disconnect();

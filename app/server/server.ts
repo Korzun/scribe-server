@@ -8,6 +8,7 @@ import { logger } from './logger';
 import { resolveMcpBaseUrl } from './mcp/base-url';
 import { createMcpDisabledRouter } from './mcp/disabled';
 import { createMcpRouter } from './mcp/index';
+import { LoginGuard } from './middleware/login-guard';
 import { requestLog } from './middleware/request-log';
 import { requestTimeout } from './middleware/timeout';
 import { createChangesRouter } from './routes/changes';
@@ -43,6 +44,8 @@ export type CreateServerDeps = {
   gc: GarbageCollector;
   /** Resumable chunked uploads (spec §7), the same sessions the collector expires. */
   uploads: UploadSessions;
+  /** Lockout and check cap for the credential routes; tests inject one to hold slots. */
+  loginGuard?: LoginGuard;
   /** Clock in epoch milliseconds; tests inject a fake one, production uses `Date.now`. */
   now?: () => number;
   /** The built admin client to serve; defaults to `app/client/dist`. Tests point it at a temp dir. */
@@ -56,6 +59,7 @@ export function createServer({
   blobStore,
   gc,
   uploads,
+  loginGuard = new LoginGuard(),
   now = Date.now,
   clientDist = CLIENT_DIST_DIR,
 }: CreateServerDeps): express.Express {
@@ -88,12 +92,15 @@ export function createServer({
     })
   );
 
-  server.use('/api/v1', createLibraryRouter({ prisma, jwtSecret, config, blobStore, gc, now }));
+  server.use(
+    '/api/v1',
+    createLibraryRouter({ prisma, jwtSecret, config, blobStore, gc, loginGuard, now })
+  );
   server.use('/api/v1', createLibraryBlobsRouter({ prisma, jwtSecret, blobStore, now }));
   server.use('/api/v1', createUploadsRouter({ prisma, uploads, now }));
-  server.use('/api/v1', createDevicesRouter({ prisma, jwtSecret, config, now }));
-  server.use('/api/v1', createSessionRouter({ prisma, jwtSecret, config, now }));
-  server.use('/api/v1', createRecoveryRouter({ prisma, config, now }));
+  server.use('/api/v1', createDevicesRouter({ prisma, jwtSecret, config, loginGuard, now }));
+  server.use('/api/v1', createSessionRouter({ prisma, jwtSecret, config, loginGuard, now }));
+  server.use('/api/v1', createRecoveryRouter({ prisma, config, loginGuard, now }));
   server.use('/api/v1', createMeetingsRouter({ prisma, jwtSecret, blobStore, now }));
   server.use('/api/v1', createChangesRouter({ prisma, jwtSecret, now }));
   server.use('/api/v1', createJobsRouter({ prisma, jwtSecret, now }));

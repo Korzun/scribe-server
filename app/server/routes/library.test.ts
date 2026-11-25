@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as http from 'http';
 import type { AddressInfo } from 'net';
 
+import request from 'supertest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { parseSecretKey } from '../crypto/codes';
@@ -212,13 +213,87 @@ describe('POST /api/v1/library', () => {
 
   it('is rate limited to 10 per minute per IP', async () => {
     writeSetupCode(h.dataDir, 'the-real-code');
+    // Malformed bodies: the limiter runs before parsing, and these never count toward a lockout.
+    const malformed = { ...cheapBody('nope'), libraryId: 'not-a-uuid' };
     for (let i = 0; i < 10; i++) {
-      expect((await client.createLibrary(cheapBody('nope'))).status).toBe(403);
+      expect((await client.createLibrary(malformed)).status).toBe(400);
     }
 
-    const res = await client.createLibrary(cheapBody('nope'));
+    const res = await client.createLibrary(malformed);
 
     expect(res.status).toBe(429);
+  });
+});
+
+describe('setup-code lockout', () => {
+  const LOCKED = { error: 'Too many attempts. Try again in 15 min.' };
+  const RESET = { setupCode: 'the-real-code', confirm: 'DELETE' };
+
+  it('POST /library locks the client after 5 wrong setup codes', async () => {
+    writeSetupCode(h.dataDir, 'the-real-code');
+    for (let i = 0; i < 5; i++) {
+      expect((await client.createLibrary(cheapBody('a-wrong-code'))).status).toBe(403);
+    }
+
+    const locked = await request(h.app).post('/api/v1/library').send(cheapBody('the-real-code'));
+    expect(locked.status).toBe(429);
+    expect(locked.headers['retry-after']).toBe('900');
+    expect(locked.body).toEqual(LOCKED);
+
+    h.now.value += 15 * 60_000;
+    expect((await client.createLibrary(cheapBody('the-real-code'))).status).toBe(201);
+  });
+
+  it('DELETE /library shares the lock: 5 wrong codes lock it', async () => {
+    writeSetupCode(h.dataDir, 'the-real-code');
+    // The reset's own window limiter allows 5 an hour, so four of the five
+    // failures come through creation; the bucket is per client, not per route.
+    for (let i = 0; i < 4; i++) {
+      expect((await client.createLibrary(cheapBody('a-wrong-code'))).status).toBe(403);
+    }
+    expect((await client.deleteLibrary({ setupCode: 'wrong', confirm: 'DELETE' })).status).toBe(
+      403
+    );
+
+    const locked = await request(h.app).delete('/api/v1/library').send(RESET);
+    expect(locked.status).toBe(429);
+    expect(locked.headers['retry-after']).toBe('900');
+    expect(locked.body).toEqual(LOCKED);
+
+    h.now.value += 15 * 60_000;
+    expect((await client.deleteLibrary(RESET)).status).toBe(204);
+  });
+
+  it('the setup-code global cap spares sign-in', async () => {
+    const gh = await createHarness({ trustProxyHops: 1 });
+    try {
+      const gc = new VaultClient(gh.app);
+      writeSetupCode(gh.dataDir, 'the-real-code');
+      const body = cheapBody('the-real-code');
+      expect((await gc.createLibrary(body)).status).toBe(201);
+
+      for (let i = 0; i < 50; i++) {
+        const res = await request(gh.app)
+          .post('/api/v1/library')
+          .set('X-Forwarded-For', `10.0.0.${i}`)
+          .send(cheapBody('a-wrong-code'));
+        expect(res.status).toBe(403);
+      }
+
+      const create = await request(gh.app)
+        .post('/api/v1/library')
+        .set('X-Forwarded-For', '10.0.1.1')
+        .send(cheapBody('the-real-code'));
+      expect(create.status).toBe(429);
+
+      const signIn = await request(gh.app)
+        .post('/api/v1/session')
+        .set('X-Forwarded-For', '10.0.1.1')
+        .send({ authKey: body.authKey });
+      expect(signIn.status).toBe(200);
+    } finally {
+      await gh.close();
+    }
   });
 });
 
@@ -299,6 +374,25 @@ describe('account operations', () => {
     expect((await c.libraryInfo(owner.deviceToken)).body.passwordWrap).toBe(
       before.body.passwordWrap
     );
+  });
+
+  it('a password change is busy when two checks are in flight', async () => {
+    const r1 = ah.loginGuard.tryCheck()!;
+    const r2 = ah.loginGuard.tryCheck()!;
+    try {
+      const res = await c.putPassword(owner.deviceToken, {
+        authKey: b64(32),
+        newPasswordSalt: b64(16),
+        newAuthKey: b64(32),
+        newPasswordWrap: wrap(),
+      });
+
+      expect(res.status).toBe(429);
+      expect(res.body).toEqual({ error: 'Too busy. Try again in a minute.' });
+    } finally {
+      r1();
+      r2();
+    }
   });
 
   it('a malformed password change is 400', async () => {
@@ -594,14 +688,13 @@ describe('DELETE /api/v1/library (keys lost)', () => {
 
   it('is rate limited to 5 per hour per IP', async () => {
     writeSetupCode(h.dataDir, 'the-reset-code');
+    // Malformed bodies: the limiter runs before parsing, and these never count toward a lockout.
     for (let i = 0; i < 5; i++) {
-      expect((await client.deleteLibrary({ setupCode: 'nope', confirm: 'DELETE' })).status).toBe(
-        403
-      );
+      expect((await client.deleteLibrary({})).status).toBe(400);
     }
-    expect((await client.deleteLibrary({ setupCode: 'nope', confirm: 'DELETE' })).status).toBe(429);
+    expect((await client.deleteLibrary({})).status).toBe(429);
     h.now.value += 60 * 60 * 1000;
-    expect((await client.deleteLibrary({ setupCode: 'nope', confirm: 'DELETE' })).status).toBe(403);
+    expect((await client.deleteLibrary({})).status).toBe(400);
   });
 });
 

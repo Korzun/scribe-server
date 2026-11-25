@@ -1,4 +1,7 @@
+import type { Request, Response } from 'express';
+
 import { logger } from '../logger';
+import { resolveClientIp } from './rate-limit';
 
 const log = logger('LoginGuard');
 
@@ -20,14 +23,15 @@ const SWEEP_THRESHOLD = 256;
 /** `secret` is any owner-secret check; `setupCode` is the library setup-code door. */
 export type GuardKind = 'secret' | 'setupCode';
 
-type LockScope = 'client' | 'all';
+/** Which locks one failure newly set: its client's, and/or the global setup-code one. */
+type LockScope = { client: boolean; global: boolean };
 
 /** A check let through by `begin`, already counted as a failure. Opaque to callers. */
 export type Attempt = {
   readonly kind: GuardKind;
   readonly client: string;
   readonly at: number;
-  /** The lock this attempt's provisional failure set, if any. */
+  /** The locks this attempt's provisional failure set, if any. */
   readonly locked: LockScope | null;
   done: boolean;
 };
@@ -98,9 +102,10 @@ export class LoginGuard {
     }
     if (attempt.locked !== null && this.lockedForMs(attempt.kind, attempt.client, nowMs) > 0) {
       const { client } = attempt;
-      if (attempt.locked === 'all') {
+      if (attempt.locked.global) {
         log.warn(`Setup-code attempts locked for everyone after failures, latest from ${client}`);
-      } else {
+      }
+      if (attempt.locked.client) {
         log.warn(`Client ${client} locked after repeated failed attempts`);
       }
     }
@@ -152,26 +157,68 @@ export class LoginGuard {
     return st;
   }
 
-  /** Records one failure; returns the lock it newly set, if any. */
+  /** Records one failure; returns the locks it newly set, if any. */
   private recordFailure(kind: GuardKind, client: string, nowMs: number): LockScope | null {
-    let locked: LockScope | null = null;
+    const locked: LockScope = { client: false, global: false };
     const st = this.clientState(client, nowMs) ?? { fails: [], lockedUntil: 0 };
     st.fails.push(nowMs);
     if (st.fails.length >= MAX_FAILS) {
       st.lockedUntil = nowMs + LOCK_MS;
       st.fails = [];
-      locked = 'client';
+      locked.client = true;
     }
     this.clients.set(client, st);
 
     if (kind === 'setupCode') {
       this.globalFails.push(nowMs);
-      if (this.globalFails.length === GLOBAL_MAX && this.globalUntil(nowMs) > nowMs) locked = 'all';
+      if (this.globalFails.length === GLOBAL_MAX && this.globalUntil(nowMs) > nowMs)
+        locked.global = true;
     }
-    return locked;
+    return locked.client || locked.global ? locked : null;
   }
 
   private sweep(nowMs: number): void {
     for (const client of [...this.clients.keys()]) this.clientState(client, nowMs);
   }
+}
+
+const minutes = (seconds: number): number => Math.max(1, Math.ceil(seconds / 60));
+
+/**
+ * Starts a guarded credential check for this request's client. When refused,
+ * sends the 429 itself (locked or busy, with `Retry-After`) and returns null.
+ * Otherwise the caller owns the attempt and must `guard.finish` it in a
+ * `finally`, or the check slot leaks.
+ */
+export function beginAttempt(
+  guard: LoginGuard,
+  req: Request,
+  res: Response,
+  kind: GuardKind,
+  trustProxyHops: number,
+  nowMs: number
+): Attempt | null {
+  const begun = guard.begin(kind, resolveClientIp(req, trustProxyHops), nowMs);
+  if ('attempt' in begun) return begun.attempt;
+  res.set('Retry-After', String(begun.retryAfterS));
+  res.status(429).json({
+    error:
+      begun.refused === 'busy'
+        ? 'Too busy. Try again in a minute.'
+        : `Too many attempts. Try again in ${minutes(begun.retryAfterS)} min.`,
+  });
+  return null;
+}
+
+/**
+ * The check cap alone, for routes that already authenticated the owner. Sends
+ * the busy 429 and returns null when full; otherwise returns the release
+ * function, to call in a `finally`.
+ */
+export function acquireCheck(guard: LoginGuard, res: Response): (() => void) | null {
+  const release = guard.tryCheck();
+  if (release !== null) return release;
+  res.set('Retry-After', String(BUSY_WAIT_S));
+  res.status(429).json({ error: 'Too busy. Try again in a minute.' });
+  return null;
 }

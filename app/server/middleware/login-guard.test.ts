@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { type Attempt, type Begin, LoginGuard } from './login-guard';
 
-vi.mock('../logger');
+// One `warn` spy shared by every logger, so a test can read what was warned.
+const warn = vi.hoisted(() => vi.fn());
+vi.mock('../logger', () => ({
+  logger: () => ({ debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() }),
+}));
 
 const MIN = 60_000;
 
@@ -72,6 +76,29 @@ describe('LoginGuard', () => {
     // lifts 60 min after the oldest of the 50 failures
     expect(g.begin('setupCode', 'fresh', t0 + 60 * MIN - 1)).toMatchObject({ refused: 'locked' });
     expect(g.begin('setupCode', 'fresh', t0 + 60 * MIN)).toHaveProperty('attempt');
+  });
+
+  it('a setup-code success removes its global timestamp', () => {
+    const g = new LoginGuard();
+    const t0 = 1_000_000;
+    for (let i = 0; i < 49; i++) fail(g, 'setupCode', `c${i}`, t0 + i);
+    const ok = attemptOf(g.begin('setupCode', 'good', t0 + 100));
+    g.finish(ok, true, t0 + 100);
+    // 49 failures remain, not 50: a fresh client is not locked
+    expect(g.begin('setupCode', 'fresh', t0 + 200)).toHaveProperty('attempt');
+  });
+
+  it('logs each lock that one setup-code failure begins', () => {
+    warn.mockClear();
+    const g = new LoginGuard();
+    const t0 = 1_000_000;
+    // 45 failures from other clients, then 5 from one: its 5th trips both locks
+    for (let i = 0; i < 45; i++) fail(g, 'setupCode', `c${i}`, t0 + i);
+    for (let i = 0; i < 5; i++) fail(g, 'setupCode', 'x', t0 + 100);
+    const lines = warn.mock.calls.map((c) => String(c[0]));
+    expect(lines).toHaveLength(2);
+    expect(lines.some((l) => l.includes('Client x locked'))).toBe(true);
+    expect(lines.some((l) => l.includes('for everyone'))).toBe(true);
   });
 
   it('a concurrent burst trips the lock', () => {
