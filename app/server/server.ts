@@ -10,6 +10,7 @@ import { createMcpDisabledRouter } from './mcp/disabled';
 import { createMcpRouter } from './mcp/index';
 import { LoginGuard } from './middleware/login-guard';
 import { requestLog } from './middleware/request-log';
+import { securityHeaders } from './middleware/security-headers';
 import { requestTimeout } from './middleware/timeout';
 import { createChangesRouter } from './routes/changes';
 import { createDevicesRouter } from './routes/devices';
@@ -64,6 +65,10 @@ export function createServer({
   clientDist = CLIENT_DIST_DIR,
 }: CreateServerDeps): express.Express {
   const server = express();
+  server.disable('x-powered-by');
+
+  // Security headers first, so every response (API, MCP, SPA, errors, timeouts) carries them.
+  server.use(securityHeaders());
 
   // Respond with a clean 503 before a ~100s proxy timeout turns into a 524.
   server.use(requestTimeout(90_000));
@@ -125,6 +130,13 @@ export function createServer({
     }
     res.sendFile(path.join(clientDist, 'index.html'), { dotfiles: 'allow' });
   };
+  // securityHeaders() set no-store up front, and static and sendFile keep a
+  // Cache-Control that is already set, so clear it here to let the SPA and its
+  // hashed assets use their own caching. API and MCP responses never get here.
+  server.use((req: Request, res: Response, next: NextFunction): void => {
+    if (req.method === 'GET' || req.method === 'HEAD') res.removeHeader('Cache-Control');
+    next();
+  });
   server.use(express.static(clientDist, { index: false }));
   server.get('/{*splat}', serveSpa);
 

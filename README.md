@@ -104,6 +104,25 @@ A misconfigured value never stops the vault from starting: a bad `PUBLIC_URL`
 degrades to none with a warning, a bad hop count to `0`, a short setup code to
 unset.
 
+### Sign-in protection
+
+Repeated credential failures lock the client out. Five failures from one
+address within 15 minutes (a wrong password, recovery code, or setup code)
+lock that address out of every credential check for 15 minutes; a success
+clears its count. Separately, 50 wrong setup codes within an hour, from any
+addresses, lock `POST` and `DELETE /library` for everyone until the oldest
+of those failures is an hour old. Nothing else is affected, so paired Macs and
+assistants keep working. At most two password checks run at once; a third
+attempt gets a 429 that is not counted as a failure. A refused request is a
+`429` with a `Retry-After` header. Counters live in memory, so a restart
+clears them. Set `TRUST_PROXY_HOPS` correctly or every client behind a proxy
+looks like one address.
+
+Every response also carries a Content-Security-Policy that allows only the
+vault's own origin, `X-Content-Type-Options: nosniff`,
+`Referrer-Policy: same-origin` and `X-Frame-Options: DENY`; API and MCP
+responses are `Cache-Control: no-store`.
+
 ## First run
 
 A fresh vault has no library. Its page offers **Create your library**:
