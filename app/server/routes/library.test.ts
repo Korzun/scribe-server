@@ -379,16 +379,24 @@ describe('account operations', () => {
   it('a password change is busy when two checks are in flight', async () => {
     const r1 = ah.loginGuard.tryCheck()!;
     const r2 = ah.loginGuard.tryCheck()!;
+    warn.mockClear();
     try {
-      const res = await c.putPassword(owner.deviceToken, {
-        authKey: b64(32),
-        newPasswordSalt: b64(16),
-        newAuthKey: b64(32),
-        newPasswordWrap: wrap(),
-      });
+      const res = await request(ah.app)
+        .put('/api/v1/library/password')
+        .set('Authorization', `Bearer ${owner.deviceToken}`)
+        .send({
+          authKey: b64(32),
+          newPasswordSalt: b64(16),
+          newAuthKey: b64(32),
+          newPasswordWrap: wrap(),
+        });
 
       expect(res.status).toBe(429);
+      expect(res.headers['retry-after']).toBe('60');
       expect(res.body).toEqual({ error: 'Too busy. Try again in a minute.' });
+      expect(warn.mock.calls.map((call) => String(call[0]))).toEqual([
+        expect.stringContaining('Account check refused as busy'),
+      ]);
     } finally {
       r1();
       r2();

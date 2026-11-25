@@ -327,7 +327,7 @@ export function createLibraryRouter({
         return;
       }
       const { authKey, ...material } = parsed.data;
-      const release = acquireCheck(loginGuard, res);
+      const release = acquireCheck(loginGuard, req, res, config.trustProxyHops);
       if (release === null) return;
       try {
         if (!(await changePassword(prisma, authKey, material))) {
@@ -351,7 +351,7 @@ export function createLibraryRouter({
         res.status(400).json({ error: 'Invalid request' });
         return;
       }
-      const release = acquireCheck(loginGuard, res);
+      const release = acquireCheck(loginGuard, req, res, config.trustProxyHops);
       if (release === null) return;
       try {
         const ids = await replaceRecoveryCodes(prisma, parsed.data);

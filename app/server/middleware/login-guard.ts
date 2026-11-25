@@ -215,9 +215,15 @@ export function beginAttempt(
  * the busy 429 and returns null when full; otherwise returns the release
  * function, to call in a `finally`.
  */
-export function acquireCheck(guard: LoginGuard, res: Response): (() => void) | null {
+export function acquireCheck(
+  guard: LoginGuard,
+  req: Request,
+  res: Response,
+  trustProxyHops: number
+): (() => void) | null {
   const release = guard.tryCheck();
   if (release !== null) return release;
+  log.warn(`Account check refused as busy for ${resolveClientIp(req, trustProxyHops)}`);
   res.set('Retry-After', String(BUSY_WAIT_S));
   res.status(429).json({ error: 'Too busy. Try again in a minute.' });
   return null;
