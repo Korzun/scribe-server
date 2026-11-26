@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 
+import { beginAttempt, type LoginGuard } from '../middleware/login-guard';
 import { createIpRateLimit } from '../middleware/rate-limit';
 import { findRecoveryCode, recoverPassword } from '../services/library';
 import type { AppConfig } from '../types';
@@ -11,6 +12,7 @@ import { newPasswordFields } from './library';
 export type RecoveryRouterDeps = {
   prisma: PrismaClient;
   config: AppConfig;
+  loginGuard: LoginGuard;
   now: () => number;
 };
 
@@ -21,7 +23,9 @@ const resetBody = z.object({ authKey: base64Bytes(32, 32), ...newPasswordFields 
  * Recovering from a forgotten password with one of the ten recovery codes
  * (spec §3, §9). Both routes are unauthenticated by nature (the owner has no
  * working credential) and every attempt costs up to ten argon2 verifies, so
- * both sit behind a per-IP rate limit of 10 a minute.
+ * both sit behind a per-IP rate limit of 10 a minute and the login guard's
+ * lockout (five failures in 15 minutes lock the client for 15 minutes; an
+ * unknown recovery id counts as a failure, being a probe).
  *
  * Step one proves possession of a code and returns the wrap the client
  * unwraps locally with the code's key (the vault never can). It also returns
@@ -33,7 +37,12 @@ const resetBody = z.object({ authKey: base64Bytes(32, 32), ...newPasswordFields 
  * Nothing here logs a request body, key, salt, verifier or wrap: only
  * "recovery code used: <id>".
  */
-export function createRecoveryRouter({ prisma, config, now }: RecoveryRouterDeps): Router {
+export function createRecoveryRouter({
+  prisma,
+  config,
+  loginGuard,
+  now,
+}: RecoveryRouterDeps): Router {
   const router = Router();
   const limit = createIpRateLimit({
     max: 10,
@@ -49,16 +58,24 @@ export function createRecoveryRouter({ prisma, config, now }: RecoveryRouterDeps
         res.status(400).json({ error: 'Invalid request' });
         return;
       }
-      const code = await findRecoveryCode(prisma, parsed.data.authKey);
-      if (code === null) {
-        res.status(401).json({ error: 'Invalid credentials' });
-        return;
+      const attempt = beginAttempt(loginGuard, req, res, 'secret', config.trustProxyHops, now());
+      if (attempt === null) return;
+      let ok = false;
+      try {
+        const code = await findRecoveryCode(prisma, parsed.data.authKey);
+        if (code === null) {
+          res.status(401).json({ error: 'Invalid credentials' });
+          return;
+        }
+        ok = true;
+        res.json({
+          recoveryId: code.id,
+          libraryId: code.libraryId,
+          wrap: code.wrap.toString('base64'),
+        });
+      } finally {
+        loginGuard.finish(attempt, ok, now());
       }
-      res.json({
-        recoveryId: code.id,
-        libraryId: code.libraryId,
-        wrap: code.wrap.toString('base64'),
-      });
     } catch (err) {
       next(err);
     }
@@ -72,22 +89,31 @@ export function createRecoveryRouter({ prisma, config, now }: RecoveryRouterDeps
         return;
       }
       const { authKey, ...material } = parsed.data;
-      const outcome = await recoverPassword(
-        prisma,
-        String(req.params.id),
-        authKey,
-        material,
-        now()
-      );
-      if (outcome === 'not_found') {
-        res.status(404).json({ error: 'Not found' });
-        return;
+      const attempt = beginAttempt(loginGuard, req, res, 'secret', config.trustProxyHops, now());
+      if (attempt === null) return;
+      let ok = false;
+      try {
+        const outcome = await recoverPassword(
+          prisma,
+          String(req.params.id),
+          authKey,
+          material,
+          now()
+        );
+        // An unknown id is a failure too: it is a probe for ids.
+        ok = outcome !== 'rejected' && outcome !== 'not_found';
+        if (outcome === 'not_found') {
+          res.status(404).json({ error: 'Not found' });
+          return;
+        }
+        if (outcome === 'rejected') {
+          res.status(401).json({ error: 'Invalid credentials' });
+          return;
+        }
+        res.status(204).end();
+      } finally {
+        loginGuard.finish(attempt, ok, now());
       }
-      if (outcome === 'rejected') {
-        res.status(401).json({ error: 'Invalid credentials' });
-        return;
-      }
-      res.status(204).end();
     } catch (err) {
       next(err);
     }

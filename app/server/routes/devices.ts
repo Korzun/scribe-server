@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import { logger } from '../logger';
+import { beginAttempt, type LoginGuard } from '../middleware/login-guard';
 import { ownerAuth } from '../middleware/owner-auth';
 import { createIpRateLimit } from '../middleware/rate-limit';
 import { issueDeviceToken } from '../services/device';
@@ -17,6 +18,7 @@ export type DevicesRouterDeps = {
   prisma: PrismaClient;
   jwtSecret: JwtSecret;
   config: AppConfig;
+  loginGuard: LoginGuard;
   now: () => number;
 };
 
@@ -31,7 +33,8 @@ const renameBody = z.object({ name: nameSchema });
  * knows the owner's password AND Secret Key by presenting the auth key derived
  * from both, and receives the password-wrapped Library Key to unwrap locally.
  * It is unauthenticated by nature (the Mac has no credential yet), so it is
- * rate limited per IP and every attempt costs an argon2 verify.
+ * rate limited per IP, locks a client out for 15 minutes after five failures
+ * in 15 minutes, and every attempt costs an argon2 verify.
  *
  * Revoking a device does NOT rotate the Library Key. A revoked Mac that
  * already held the key keeps what it had; revocation only stops further access
@@ -40,7 +43,13 @@ const renameBody = z.object({ name: nameSchema });
  * Nothing here logs a request body, token, key, salt or verifier: outcomes
  * are logged with device ids only.
  */
-export function createDevicesRouter({ prisma, jwtSecret, config, now }: DevicesRouterDeps): Router {
+export function createDevicesRouter({
+  prisma,
+  jwtSecret,
+  config,
+  loginGuard,
+  now,
+}: DevicesRouterDeps): Router {
   const router = Router();
   const enrolLimit = createIpRateLimit({
     max: 10,
@@ -62,23 +71,31 @@ export function createDevicesRouter({ prisma, jwtSecret, config, now }: DevicesR
         res.status(404).json({ error: 'No library' });
         return;
       }
-      if (!(await verifyOwner(prisma, parsed.data.authKey))) {
-        log.warn('Enrolment refused: invalid credentials');
-        res.status(401).json({ error: 'Invalid credentials' });
-        return;
+      const attempt = beginAttempt(loginGuard, req, res, 'secret', config.trustProxyHops, now());
+      if (attempt === null) return;
+      let ok = false;
+      try {
+        if (!(await verifyOwner(prisma, parsed.data.authKey))) {
+          log.warn('Enrolment refused: invalid credentials');
+          res.status(401).json({ error: 'Invalid credentials' });
+          return;
+        }
+        ok = true;
+        const issued = await issueDeviceToken(prisma, {
+          libraryId: library.id,
+          name: parsed.data.name,
+          now: now(),
+        });
+        res.status(201).json({
+          deviceId: issued.deviceId,
+          deviceToken: issued.token,
+          libraryId: library.id,
+          passwordSalt: Buffer.from(library.passwordSalt).toString('base64'),
+          passwordWrap: Buffer.from(library.passwordWrap).toString('base64'),
+        });
+      } finally {
+        loginGuard.finish(attempt, ok, now());
       }
-      const issued = await issueDeviceToken(prisma, {
-        libraryId: library.id,
-        name: parsed.data.name,
-        now: now(),
-      });
-      res.status(201).json({
-        deviceId: issued.deviceId,
-        deviceToken: issued.token,
-        libraryId: library.id,
-        passwordSalt: Buffer.from(library.passwordSalt).toString('base64'),
-        passwordWrap: Buffer.from(library.passwordWrap).toString('base64'),
-      });
     } catch (err) {
       next(err);
     }

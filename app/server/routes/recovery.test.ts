@@ -1,5 +1,6 @@
 import * as crypto from 'crypto';
 
+import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { parseRecoveryCode, parseSecretKey } from '../crypto/codes';
@@ -29,10 +30,10 @@ afterAll(async () => {
 });
 
 describe('recovery', () => {
-  // The earlier tests spend the per-minute budget; a new minute per test keeps
-  // the limiter out of the way (the rate-limit test below has its own harness).
+  // The earlier tests spend the per-minute budget and wrong attempts add up
+  // toward a lockout; 30 minutes per test keeps both out of the way (the rate-limit test below has its own harness).
   beforeEach(() => {
-    h.now.value += 120_000;
+    h.now.value += 30 * 60_000;
   });
 
   it('a recovery code unwraps the library key and sets a new password', async () => {
@@ -148,6 +149,52 @@ describe('recovery', () => {
     const row = await h.prisma.recoveryCode.findUniqueOrThrow({ where: { id } });
     expect(row.usedAt).toBe(h.now.value);
   });
+
+  describe('lockout', () => {
+    const LOCKED = { error: 'Too many attempts. Try again in 15 min.' };
+
+    it('locks the client after 5 wrong attempts at the first step', async () => {
+      const right = await recoveryAuthKey(owner.recoveryCodes[3]!);
+      for (let i = 0; i < 5; i++)
+        expect((await client.postRecovery({ authKey: b64(32) })).status).toBe(401);
+
+      const locked = await request(h.app).post('/api/v1/recovery').send({ authKey: right });
+      expect(locked.status).toBe(429);
+      expect(locked.headers['retry-after']).toBe('900');
+      expect(locked.body).toEqual(LOCKED);
+
+      h.now.value += 15 * 60_000;
+      expect((await client.postRecovery({ authKey: right })).status).toBe(200);
+    });
+
+    it('locks the client after 5 wrong attempts at the second step, unknown ids included', async () => {
+      const right = await recoveryAuthKey(owner.recoveryCodes[4]!);
+      const id = (await client.postRecovery({ authKey: right })).body.recoveryId!;
+      for (let i = 0; i < 3; i++) {
+        expect(
+          (await client.postRecoveryPassword(id, { authKey: b64(32), ...material() })).status
+        ).toBe(401);
+      }
+      for (let i = 0; i < 2; i++) {
+        expect(
+          (await client.postRecoveryPassword('no-such-id', { authKey: b64(32), ...material() }))
+            .status
+        ).toBe(404);
+      }
+
+      const locked = await request(h.app)
+        .post(`/api/v1/recovery/${id}/password`)
+        .send({ authKey: right, ...material() });
+      expect(locked.status).toBe(429);
+      expect(locked.headers['retry-after']).toBe('900');
+      expect(locked.body).toEqual(LOCKED);
+
+      h.now.value += 15 * 60_000;
+      expect(
+        (await client.postRecoveryPassword(id, { authKey: right, ...material() })).status
+      ).toBe(204);
+    });
+  });
 });
 
 describe('recovery rate limit', () => {
@@ -156,10 +203,10 @@ describe('recovery rate limit', () => {
     try {
       const c = new VaultClient(fresh.app);
       const statuses: number[] = [];
-      for (let i = 0; i < 11; i++)
-        statuses.push((await c.postRecovery({ authKey: b64(32) })).status);
+      // Malformed: the limiter runs before parsing, and these never count toward a lockout.
+      for (let i = 0; i < 11; i++) statuses.push((await c.postRecovery({})).status);
 
-      expect(statuses.slice(0, 10).every((s) => s === 401)).toBe(true);
+      expect(statuses.slice(0, 10).every((s) => s === 400)).toBe(true);
       expect(statuses[10]).toBe(429);
     } finally {
       await fresh.close();

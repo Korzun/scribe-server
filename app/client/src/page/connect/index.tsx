@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router';
 
 import { Card, Page } from '~/component';
 import { Button, PasswordPromptModal, type PasswordPromptValues } from '~/control';
-import type { ApiResult } from '~/lib/api';
+import { type ApiResult, serverMessage } from '~/lib/api';
 import {
   approveConnection,
   denyConnection,
@@ -41,7 +41,7 @@ const failureMessage = (result: Extract<ApiResult<unknown>, { ok: false }>): str
     case 401:
       return 'Invalid credentials';
     case 429:
-      return 'Too many attempts — please wait a moment and try again';
+      return serverMessage(result) ?? 'Too many attempts — please wait a moment and try again';
     case 0:
       return 'Network error — please try again';
     default:

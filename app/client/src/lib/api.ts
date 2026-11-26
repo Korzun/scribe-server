@@ -162,3 +162,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<ApiResul
     return { ok: false, status: 0, error: 'Network error' };
   }
 }
+
+/**
+ * The server's own words for a failed call (a 429 says whether the client is
+ * locked out or the vault is busy), or null when the response carried none and
+ * `error` is only the `HTTP <status>` placeholder.
+ */
+export const serverMessage = (result: Extract<ApiResult<unknown>, { ok: false }>): string | null =>
+  /^HTTP \d{3}$/.test(result.error) ? null : result.error;

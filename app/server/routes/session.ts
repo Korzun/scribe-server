@@ -3,6 +3,7 @@ import { Router, type Response } from 'express';
 import { z } from 'zod';
 
 import { logger } from '../logger';
+import { beginAttempt, type LoginGuard } from '../middleware/login-guard';
 import { createIpRateLimit } from '../middleware/rate-limit';
 import { signAccessToken } from '../services/jwt';
 import { getLibrary, verifyOwner } from '../services/library';
@@ -24,6 +25,7 @@ export type SessionRouterDeps = {
   prisma: PrismaClient;
   jwtSecret: JwtSecret;
   config: AppConfig;
+  loginGuard: LoginGuard;
   now: () => number;
 };
 
@@ -47,11 +49,20 @@ const REFRESH_COOKIE_PATH = '/api/v1/session';
  *
  * Sign-in is the same proof the Macs give when enrolling: the auth key derived
  * from password + Secret Key. It is unauthenticated by nature and every
- * attempt costs an argon2 verify, so it is rate limited per IP.
+ * attempt costs an argon2 verify, so it is rate limited per IP, and a client
+ * that fails five times in 15 minutes is locked out for 15 minutes (the login
+ * guard also caps checks in flight). A lock refuses only this route: tokens
+ * already issued keep working.
  *
  * Nothing here logs a request body, token, key or cookie: outcomes only.
  */
-export function createSessionRouter({ prisma, jwtSecret, config, now }: SessionRouterDeps): Router {
+export function createSessionRouter({
+  prisma,
+  jwtSecret,
+  config,
+  loginGuard,
+  now,
+}: SessionRouterDeps): Router {
   const router = Router();
   const loginLimit = createIpRateLimit({
     max: 10,
@@ -101,14 +112,22 @@ export function createSessionRouter({ prisma, jwtSecret, config, now }: SessionR
         res.status(404).json({ error: 'No library' });
         return;
       }
-      if (!(await verifyOwner(prisma, parsed.data.authKey))) {
-        log.warn('Sign-in refused: invalid credentials');
-        res.status(401).json({ error: 'Invalid credentials' });
-        return;
+      const attempt = beginAttempt(loginGuard, req, res, 'secret', config.trustProxyHops, now());
+      if (attempt === null) return;
+      let ok = false;
+      try {
+        if (!(await verifyOwner(prisma, parsed.data.authKey))) {
+          log.warn('Sign-in refused: invalid credentials');
+          res.status(401).json({ error: 'Invalid credentials' });
+          return;
+        }
+        ok = true;
+        log.info('Owner signed in');
+        await deleteExpired(prisma, now());
+        await issueTokens(res, epoch);
+      } finally {
+        loginGuard.finish(attempt, ok, now());
       }
-      log.info('Owner signed in');
-      await deleteExpired(prisma, now());
-      await issueTokens(res, epoch);
     } catch (err) {
       next(err);
     }

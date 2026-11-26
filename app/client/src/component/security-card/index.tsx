@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 
 import { Button, CodesSheet, PasswordPromptModal, type PasswordPromptValues } from '~/control';
 import { changePassword, regenerateRecoveryCodes } from '~/lib/account';
-import type { ApiResult } from '~/lib/api';
+import { type ApiResult, serverMessage } from '~/lib/api';
 import { forgetSecretKey, recallSecretKey } from '~/lib/secret-key-store';
 import { useAuth } from '~/provider/auth';
 import { useToast } from '~/provider/toast';
@@ -34,7 +34,7 @@ const failureMessage = (result: Extract<ApiResult<unknown>, { ok: false }>) => {
     case 401:
       return 'Invalid credentials';
     case 429:
-      return 'Too many attempts — please wait a moment and try again';
+      return serverMessage(result) ?? 'Too many attempts — please wait a moment and try again';
     default:
       return result.error;
   }

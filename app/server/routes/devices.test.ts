@@ -1,5 +1,6 @@
 import * as crypto from 'crypto';
 
+import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { formatSecretKey, generateSecretKey, parseSecretKey } from '../crypto/codes';
@@ -115,6 +116,25 @@ describe('device management', () => {
     const me = await enrol('Self');
     expect((await client.revokeDevice(me.body.deviceToken!, me.body.deviceId!)).status).toBe(204);
     expect((await client.devices(me.body.deviceToken!)).status).toBe(401);
+  });
+});
+
+describe('enrolment lockout', () => {
+  it('locks the client after 5 wrong attempts', async () => {
+    // Earlier tests in this file left a wrong attempt or two; start a new window.
+    h.now.value += 30 * 60_000;
+    const wrong = { authKey: crypto.randomBytes(32).toString('base64'), name: 'Intruder' };
+    for (let i = 0; i < 5; i++) expect((await client.postDevice(wrong)).status).toBe(401);
+
+    const locked = await enrol('Too Soon');
+    expect(locked.status).toBe(429);
+    expect(locked.body).toEqual({ error: 'Too many attempts. Try again in 15 min.' });
+    const raw = await request(h.app).post('/api/v1/devices').send(wrong);
+    expect(raw.status).toBe(429);
+    expect(raw.headers['retry-after']).toBe('900');
+
+    h.now.value += 15 * 60_000;
+    expect((await enrol('Back Again')).status).toBe(201);
   });
 });
 
