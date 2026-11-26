@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 
 import { Card, Page } from '~/component';
 import { Button, TextInput } from '~/control';
-import { api } from '~/lib/api';
+import { api, serverMessage } from '~/lib/api';
 import { fromBase64, toBase64 } from '~/lib/bytes';
 import { formatSecretKey, parseSecretKey } from '~/lib/codes';
 import { deriveAccountKeys, passwordBytes } from '~/lib/kdf';
@@ -115,9 +115,10 @@ export const LoginPage = () => {
         // Not a credentials failure, so "Invalid credentials" would be wrong
         // and would not clear on a correct retry.
         showToast(
-          result.retryAfterSeconds !== undefined
-            ? `Too many attempts — try again in ${result.retryAfterSeconds} seconds`
-            : 'Too many attempts — please wait a moment and try again',
+          serverMessage(result) ??
+            (result.retryAfterSeconds !== undefined
+              ? `Too many attempts — try again in ${result.retryAfterSeconds} seconds`
+              : 'Too many attempts — please wait a moment and try again'),
           'error'
         );
         break;

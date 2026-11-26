@@ -7,7 +7,8 @@ const HEADERS: Record<string, string> = {
   'Referrer-Policy': 'same-origin',
   'X-Frame-Options': 'DENY',
   // A default for API and MCP responses. `express.static` and `res.sendFile`
-  // set their own Cache-Control later, so the admin SPA keeps its caching.
+  // keep a Cache-Control that is already set, so server.ts clears this one on
+  // GET/HEAD ahead of the SPA handlers to let the admin SPA keep its caching.
   'Cache-Control': 'no-store',
 };
 

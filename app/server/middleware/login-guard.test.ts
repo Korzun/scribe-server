@@ -1,6 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import type { Request, Response } from 'express';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type Attempt, type Begin, LoginGuard } from './login-guard';
+import {
+  type Attempt,
+  type Begin,
+  acquireCheck,
+  beginAttempt,
+  LoginGuard,
+  resetProxyWarning,
+} from './login-guard';
 
 // One `warn` spy shared by every logger, so a test can read what was warned.
 const warn = vi.hoisted(() => vi.fn());
@@ -168,5 +176,44 @@ describe('LoginGuard', () => {
     expect(g.size()).toBe(300);
     g.begin('secret', 'late', t0 + 30 * MIN);
     expect(g.size()).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('proxy misconfiguration warning', () => {
+  const reqWith = (headers: Record<string, string>): Request =>
+    ({ headers, socket: { remoteAddress: '10.0.0.1' } }) as unknown as Request;
+  const res = {
+    set: vi.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+  } as unknown as Response;
+  const proxyWarnings = () =>
+    warn.mock.calls.filter((c) => String(c[0]).includes('TRUST_PROXY_HOPS'));
+
+  beforeEach(() => {
+    warn.mockClear();
+    resetProxyWarning();
+  });
+
+  it('warns once across requests carrying X-Forwarded-For with hops 0', () => {
+    const g = new LoginGuard();
+    const req = reqWith({ 'x-forwarded-for': '1.2.3.4' });
+    g.finish(beginAttempt(g, req, res, 'secret', 0, 1_000_000)!, true, 1_000_000);
+    g.finish(beginAttempt(g, req, res, 'secret', 0, 1_000_001)!, true, 1_000_001);
+    acquireCheck(g, req, res, 0)?.();
+    expect(proxyWarnings()).toHaveLength(1);
+  });
+
+  it('never warns when hops > 0', () => {
+    const g = new LoginGuard();
+    const req = reqWith({ 'x-forwarded-for': '1.2.3.4' });
+    g.finish(beginAttempt(g, req, res, 'secret', 1, 1_000_000)!, true, 1_000_000);
+    expect(proxyWarnings()).toHaveLength(0);
+  });
+
+  it('never warns without the header', () => {
+    const g = new LoginGuard();
+    g.finish(beginAttempt(g, reqWith({}), res, 'secret', 0, 1_000_000)!, true, 1_000_000);
+    expect(proxyWarnings()).toHaveLength(0);
   });
 });

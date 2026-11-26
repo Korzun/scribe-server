@@ -182,6 +182,26 @@ export class LoginGuard {
   }
 }
 
+let proxyWarned = false;
+
+/** Test hook: lets the once-per-process proxy warning fire again. */
+export function resetProxyWarning(): void {
+  proxyWarned = false;
+}
+
+/**
+ * With no trusted hops every client resolves to the proxy's own address, so
+ * all of them share one lockout bucket. Warns once per process when a request
+ * shows it is being proxied anyway.
+ */
+function warnIfUnconfiguredProxy(req: Request, trustProxyHops: number): void {
+  if (proxyWarned || trustProxyHops > 0 || req.headers['x-forwarded-for'] === undefined) return;
+  proxyWarned = true;
+  log.warn(
+    'Requests arrive through a proxy (X-Forwarded-For) but TRUST_PROXY_HOPS is 0: every client shares one lockout bucket. Set TRUST_PROXY_HOPS to your proxy hop count.'
+  );
+}
+
 const minutes = (seconds: number): number => Math.max(1, Math.ceil(seconds / 60));
 
 /**
@@ -198,6 +218,7 @@ export function beginAttempt(
   trustProxyHops: number,
   nowMs: number
 ): Attempt | null {
+  warnIfUnconfiguredProxy(req, trustProxyHops);
   const begun = guard.begin(kind, resolveClientIp(req, trustProxyHops), nowMs);
   if ('attempt' in begun) return begun.attempt;
   res.set('Retry-After', String(begun.retryAfterS));
@@ -221,6 +242,7 @@ export function acquireCheck(
   res: Response,
   trustProxyHops: number
 ): (() => void) | null {
+  warnIfUnconfiguredProxy(req, trustProxyHops);
   const release = guard.tryCheck();
   if (release !== null) return release;
   log.warn(`Account check refused as busy for ${resolveClientIp(req, trustProxyHops)}`);

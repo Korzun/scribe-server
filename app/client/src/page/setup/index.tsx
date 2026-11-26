@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 
 import { Card, Page } from '~/component';
 import { Button, TextInput } from '~/control';
-import { api } from '~/lib/api';
+import { api, serverMessage } from '~/lib/api';
 import { rememberSecretKey } from '~/lib/secret-key-store';
 import { createLibrary, type Kit, KIT_FILE_NAME, kitFileText, prepareLibrary } from '~/lib/setup';
 import { extractAccessToken } from '~/lib/token';
@@ -115,9 +115,10 @@ export const SetupPage = () => {
         break;
       case 429:
         toast(
-          result.retryAfterSeconds !== undefined
-            ? `Too many attempts — try again in ${result.retryAfterSeconds} seconds`
-            : 'Too many attempts — please wait a moment and try again',
+          serverMessage(result) ??
+            (result.retryAfterSeconds !== undefined
+              ? `Too many attempts — try again in ${result.retryAfterSeconds} seconds`
+              : 'Too many attempts — please wait a moment and try again'),
           'error'
         );
         break;

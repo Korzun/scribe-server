@@ -131,8 +131,9 @@ export function createServer({
     res.sendFile(path.join(clientDist, 'index.html'), { dotfiles: 'allow' });
   };
   // securityHeaders() set no-store up front, and static and sendFile keep a
-  // Cache-Control that is already set, so clear it here to let the SPA and its
-  // hashed assets use their own caching. API and MCP responses never get here.
+  // Cache-Control that is already set, so clear it here to let the SPA and
+  // its assets send their own default (serve-static's `public, max-age=0`).
+  // API and MCP responses never get here.
   server.use((req: Request, res: Response, next: NextFunction): void => {
     if (req.method === 'GET' || req.method === 'HEAD') res.removeHeader('Cache-Control');
     next();

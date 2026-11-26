@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { Card, Page } from '~/component';
 import { Button, TextInput } from '~/control';
 import { recover } from '~/lib/account';
+import { serverMessage } from '~/lib/api';
 import { recallSecretKey } from '~/lib/secret-key-store';
 import { useToast } from '~/provider/toast';
 import { path } from '~/router';
@@ -59,7 +60,10 @@ export const RecoverPage = () => {
         toast('That code or Secret Key is wrong', 'error');
         break;
       case 429:
-        toast('Too many attempts — please wait a moment and try again', 'error');
+        toast(
+          serverMessage(result) ?? 'Too many attempts — please wait a moment and try again',
+          'error'
+        );
         break;
       default:
         toast(result.error, 'error');

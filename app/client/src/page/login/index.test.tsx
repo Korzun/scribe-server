@@ -160,16 +160,36 @@ describe('LoginPage', () => {
       expect(localStorage.getItem(SECRET_KEY_STORAGE)).toBeNull();
     });
 
-    it('toasts a retry-after message on a 429 rather than "Invalid credentials"', async () => {
+    it('shows the server\'s lockout text on a 429 rather than "Invalid credentials"', async () => {
       routes['/api/v1/session'] = () =>
-        json(429, { error: 'Too many attempts' }, { 'Retry-After': '42' });
+        json(429, { error: 'Too many attempts. Try again in 15 min.' }, { 'Retry-After': '900' });
+      renderPage();
+      await fillAndSubmit('pw', v.formatted.secretKey);
+
+      expect(
+        await screen.findByText('Too many attempts. Try again in 15 min.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Invalid credentials')).not.toBeInTheDocument();
+      expect(screen.queryByText(/900 seconds/)).not.toBeInTheDocument();
+    });
+
+    it("shows the server's busy text on a 429, not blame for the owner", async () => {
+      routes['/api/v1/session'] = () =>
+        json(429, { error: 'Too busy. Try again in a minute.' }, { 'Retry-After': '60' });
+      renderPage();
+      await fillAndSubmit('pw', v.formatted.secretKey);
+
+      expect(await screen.findByText('Too busy. Try again in a minute.')).toBeInTheDocument();
+    });
+
+    it('falls back to the retry-after copy when a 429 carries no message', async () => {
+      routes['/api/v1/session'] = () => json(429, {}, { 'Retry-After': '42' });
       renderPage();
       await fillAndSubmit('pw', v.formatted.secretKey);
 
       expect(
         await screen.findByText('Too many attempts — try again in 42 seconds')
       ).toBeInTheDocument();
-      expect(screen.queryByText('Invalid credentials')).not.toBeInTheDocument();
     });
 
     it('toasts a network error when the vault cannot be reached', async () => {

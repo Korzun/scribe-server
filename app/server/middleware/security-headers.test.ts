@@ -36,6 +36,14 @@ describe('securityHeaders', () => {
     expect(res.headers['cache-control']).toBe('no-store');
   });
 
+  it('the /api 404 still carries no-store', async () => {
+    h = await createHarness();
+    const res = await request(h.app).get('/api/v1/nope');
+
+    expect(res.status).toBe(404);
+    expect(res.headers['cache-control']).toBe('no-store');
+  });
+
   it('the SPA shell carries the headers and keeps its own caching', async () => {
     h = await createHarness();
     const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'scribe-headers-dist-'));
